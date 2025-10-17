@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../models/category.dart' as model;
 import '../providers/category_provider.dart';
 import '../providers/theme_provider.dart';
+import 'import_transactions_screen.dart';
 
 /// Screen for managing categories and app settings
 class SettingsScreen extends StatelessWidget {
@@ -79,6 +80,89 @@ class SettingsScreen extends StatelessWidget {
                     themeProvider.toggleTheme();
                   },
                   activeColor: theme.colorScheme.primary,
+                ),
+              ),
+
+              // iOS-style Data Management Section
+              _buildSectionHeader(context, 'DATA'),
+              Container(
+                margin: const EdgeInsets.symmetric(horizontal: 16),
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF1C1C1E) : Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: isDark
+                      ? Border.all(
+                          color: const Color(0xFF38383A).withOpacity(0.5),
+                          width: 0.5,
+                        )
+                      : null,
+                  boxShadow: isDark
+                      ? null
+                      : [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.05),
+                            blurRadius: 3,
+                            offset: const Offset(0, 1),
+                          ),
+                        ],
+                ),
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const ImportTransactionsScreen(),
+                        ),
+                      );
+                    },
+                    borderRadius: BorderRadius.circular(12),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.primary.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Icon(
+                              Icons.upload_file,
+                              color: theme.colorScheme.primary,
+                              size: 22,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Import Transactions',
+                                  style: theme.textTheme.bodyLarge,
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  'From CSV or Excel file',
+                                  style: theme.textTheme.bodySmall,
+                                ),
+                              ],
+                            ),
+                          ),
+                          Icon(
+                            Icons.chevron_right,
+                            color: theme.textTheme.bodySmall?.color,
+                            size: 20,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                 ),
               ),
 

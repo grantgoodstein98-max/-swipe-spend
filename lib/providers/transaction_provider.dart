@@ -124,4 +124,39 @@ class TransactionProvider extends ChangeNotifier {
     _transactions.clear();
     notifyListeners();
   }
+
+  /// Import transactions from a file with duplicate detection
+  /// Returns the number of transactions actually imported (excluding duplicates)
+  Future<int> importTransactions(List<Transaction> newTransactions) async {
+    try {
+      int importedCount = 0;
+
+      for (final newTransaction in newTransactions) {
+        // Check for duplicates based on name, amount, and date
+        final isDuplicate = _transactions.any((existing) =>
+            existing.name == newTransaction.name &&
+            existing.amount == newTransaction.amount &&
+            existing.date.year == newTransaction.date.year &&
+            existing.date.month == newTransaction.date.month &&
+            existing.date.day == newTransaction.date.day);
+
+        if (!isDuplicate) {
+          _transactions.add(newTransaction);
+          importedCount++;
+        }
+      }
+
+      // Sort by date (newest first) after import
+      _transactions.sort((a, b) => b.date.compareTo(a.date));
+
+      if (importedCount > 0) {
+        notifyListeners();
+      }
+
+      return importedCount;
+    } catch (e) {
+      debugPrint('Error importing transactions: $e');
+      rethrow;
+    }
+  }
 }
