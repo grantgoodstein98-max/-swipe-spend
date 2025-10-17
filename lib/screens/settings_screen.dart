@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/category.dart' as model;
 import '../providers/category_provider.dart';
+import '../providers/theme_provider.dart';
 
 /// Screen for managing categories and app settings
 class SettingsScreen extends StatelessWidget {
@@ -12,10 +13,9 @@ class SettingsScreen extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Settings'),
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
       ),
-      body: Consumer<CategoryProvider>(
-        builder: (context, categoryProvider, child) {
+      body: Consumer2<CategoryProvider, ThemeProvider>(
+        builder: (context, categoryProvider, themeProvider, child) {
           if (categoryProvider.isLoading) {
             return const Center(
               child: CircularProgressIndicator(),
@@ -27,6 +27,43 @@ class SettingsScreen extends StatelessWidget {
           return ListView(
             padding: const EdgeInsets.all(16),
             children: [
+              // Appearance Section
+              Text(
+                'Appearance',
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+              ),
+              const SizedBox(height: 16),
+              Card(
+                elevation: 2,
+                child: SwitchListTile(
+                  title: const Text(
+                    'Dark Mode',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  subtitle: Text(
+                    themeProvider.isDarkMode
+                        ? 'Switch to light theme'
+                        : 'Switch to dark theme',
+                  ),
+                  secondary: Icon(
+                    themeProvider.isDarkMode
+                        ? Icons.dark_mode
+                        : Icons.light_mode,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                  value: themeProvider.isDarkMode,
+                  onChanged: (bool value) {
+                    themeProvider.toggleTheme();
+                  },
+                ),
+              ),
+              const SizedBox(height: 32),
+
+              // Swipe Mapping Section
               Text(
                 'Swipe Mapping',
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(

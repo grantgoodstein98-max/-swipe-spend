@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'swipe_screen.dart';
 import 'charts_screen.dart';
+import 'ai_assistant_screen.dart';
 import 'settings_screen.dart';
 
 /// Main home screen with bottom navigation
@@ -18,6 +19,7 @@ class _HomeScreenState extends State<HomeScreen> {
   final List<Widget> _screens = const [
     SwipeScreen(),
     ChartsScreen(),
+    AiAssistantScreen(),
     SettingsScreen(),
   ];
 
@@ -27,6 +29,7 @@ class _HomeScreenState extends State<HomeScreen> {
       body: _screens[_currentIndex],
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
+        type: BottomNavigationBarType.fixed,
         onTap: (index) {
           setState(() {
             _currentIndex = index;
@@ -40,6 +43,10 @@ class _HomeScreenState extends State<HomeScreen> {
           BottomNavigationBarItem(
             icon: Icon(Icons.pie_chart),
             label: 'Charts',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.psychology),
+            label: 'AI Assistant',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.settings),

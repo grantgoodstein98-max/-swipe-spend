@@ -51,6 +51,12 @@ dependencies:
   # Date formatting
   intl: ^0.19.0
 
+  # HTTP requests for AI API
+  http: ^1.2.0
+
+  # UUID generation for chat messages
+  uuid: ^4.3.3
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

@@ -6,7 +6,6 @@ import '../models/category.dart' as model;
 import '../providers/transaction_provider.dart';
 import '../providers/category_provider.dart';
 import '../widgets/transaction_card.dart';
-import '../widgets/category_indicator.dart';
 
 /// Screen for swiping to categorize transactions
 class SwipeScreen extends StatefulWidget {
@@ -19,6 +18,7 @@ class SwipeScreen extends StatefulWidget {
 class _SwipeScreenState extends State<SwipeScreen> {
   final CardSwiperController _controller = CardSwiperController();
   bool _showCategorizedList = false;
+  int _currentCardIndex = 0;
 
   @override
   void dispose() {
@@ -28,27 +28,44 @@ class _SwipeScreenState extends State<SwipeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Categorize Transactions'),
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        title: Text(
+          'Swipe',
+          style: theme.textTheme.displayLarge,
+        ),
         actions: [
-          // Show count of uncategorized transactions
+          // Settings button to configure swipe mappings
           Consumer<TransactionProvider>(
             builder: (context, transactionProvider, child) {
               final uncategorizedCount =
                   transactionProvider.uncategorizedTransactions.length;
-              return Center(
-                child: Padding(
-                  padding: const EdgeInsets.only(right: 16.0),
-                  child: Text(
-                    '$uncategorizedCount left',
-                    style: Theme.of(context).textTheme.titleMedium,
+              return Container(
+                margin: const EdgeInsets.only(right: 12),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primary.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Text(
+                  '$uncategorizedCount left',
+                  style: theme.textTheme.labelLarge?.copyWith(
+                    color: theme.colorScheme.primary,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
               );
             },
           ),
+          IconButton(
+            icon: const Icon(Icons.settings_outlined, size: 24),
+            onPressed: () {
+              DefaultTabController.of(context).animateTo(3);
+            },
+            tooltip: 'Settings',
+          ),
+          const SizedBox(width: 8),
         ],
       ),
       body: Consumer2<TransactionProvider, CategoryProvider>(
@@ -78,30 +95,79 @@ class _SwipeScreenState extends State<SwipeScreen> {
               // Categorized transactions list at top
               if (categorizedTransactions.isNotEmpty)
                 Container(
-                  padding: const EdgeInsets.all(16),
+                  margin: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+                  decoration: BoxDecoration(
+                    color: theme.cardTheme.color,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: theme.brightness == Brightness.light
+                        ? [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.05),
+                              blurRadius: 3,
+                              offset: const Offset(0, 1),
+                            ),
+                          ]
+                        : null,
+                    border: theme.brightness == Brightness.dark
+                        ? Border.all(
+                            color: const Color(0xFF38383A).withOpacity(0.5),
+                            width: 0.5,
+                          )
+                        : null,
+                  ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'Categorized (${categorizedTransactions.length})',
-                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                ),
+                      InkWell(
+                        onTap: () {
+                          setState(() {
+                            _showCategorizedList = !_showCategorizedList;
+                          });
+                        },
+                        borderRadius: BorderRadius.circular(12),
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'Categorized',
+                                style: theme.textTheme.headlineMedium,
+                              ),
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 10,
+                                      vertical: 4,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: theme.colorScheme.secondary
+                                          .withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Text(
+                                      '${categorizedTransactions.length}',
+                                      style: theme.textTheme.labelMedium?.copyWith(
+                                        color: theme.colorScheme.secondary,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Icon(
+                                    _showCategorizedList
+                                        ? Icons.chevron_right
+                                        : Icons.chevron_right,
+                                    size: 20,
+                                    color: theme.textTheme.bodySmall?.color,
+                                  ),
+                                ],
+                              ),
+                            ],
                           ),
-                          IconButton(
-                            icon: Icon(_showCategorizedList
-                                ? Icons.expand_less
-                                : Icons.expand_more),
-                            onPressed: () {
-                              setState(() {
-                                _showCategorizedList = !_showCategorizedList;
-                              });
-                            },
-                          ),
-                        ],
+                        ),
                       ),
                       if (_showCategorizedList) ...[
                         const SizedBox(height: 8),
@@ -164,26 +230,18 @@ class _SwipeScreenState extends State<SwipeScreen> {
 
               // Swipe area
               Expanded(
-                child: Stack(
-                  children: [
-                    // Category indicators around the edges
-                    CategoryIndicator(
-                      categories: categories,
-                      swipeMappings: categoryProvider.swipeMappings,
-                      categoryTotals: categoryTotals,
-                    ),
-
-                    // Main swipe area with card
-                    Center(
-                      child: uncategorizedTransactions.isEmpty
-                          ? _buildEmptyState(context)
-                          : Container(
-                              constraints: BoxConstraints(
-                                maxWidth: 300,
-                                maxHeight:
-                                    MediaQuery.of(context).size.height * 0.4,
-                              ),
-                              child: Padding(
+                child: uncategorizedTransactions.isEmpty
+                    ? _buildEmptyState(context)
+                    : Center(
+                        child: Container(
+                          constraints: BoxConstraints(
+                            maxWidth: 300,
+                            maxHeight:
+                                MediaQuery.of(context).size.height * 0.4,
+                          ),
+                          child: Stack(
+                            children: [
+                              Padding(
                                 padding: const EdgeInsets.symmetric(
                                     horizontal: 20.0),
                                 child: CardSwiper(
@@ -194,6 +252,11 @@ class _SwipeScreenState extends State<SwipeScreen> {
                                   padding: const EdgeInsets.all(24),
                                   onSwipe: (previousIndex, currentIndex,
                                       direction) {
+                                    if (currentIndex != null) {
+                                      setState(() {
+                                        _currentCardIndex = currentIndex;
+                                      });
+                                    }
                                     return _onSwipe(
                                       previousIndex,
                                       direction,
@@ -208,14 +271,59 @@ class _SwipeScreenState extends State<SwipeScreen> {
                                     return TransactionCard(
                                       transaction:
                                           uncategorizedTransactions[index],
+                                      horizontalOffsetPercentage:
+                                          horizontalOffsetPercentage.toDouble(),
+                                      verticalOffsetPercentage:
+                                          verticalOffsetPercentage.toDouble(),
+                                      categories: categories,
+                                      swipeMappings: categoryProvider.swipeMappings,
                                     );
                                   },
                                 ),
                               ),
-                            ),
-                    ),
-                  ],
-                ),
+                              // Card counter with frosted glass effect
+                              Positioned(
+                                top: 0,
+                                right: 20,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 14,
+                                    vertical: 7,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: theme.brightness == Brightness.light
+                                        ? Colors.white.withOpacity(0.9)
+                                        : Colors.black.withOpacity(0.7),
+                                    borderRadius: BorderRadius.circular(18),
+                                    border: Border.all(
+                                      color: theme.brightness == Brightness.light
+                                          ? Colors.black.withOpacity(0.08)
+                                          : Colors.white.withOpacity(0.15),
+                                      width: 0.5,
+                                    ),
+                                    boxShadow: theme.brightness == Brightness.light
+                                        ? [
+                                            BoxShadow(
+                                              color: Colors.black.withOpacity(0.1),
+                                              blurRadius: 12,
+                                              offset: const Offset(0, 4),
+                                            ),
+                                          ]
+                                        : null,
+                                  ),
+                                  child: Text(
+                                    '${_currentCardIndex + 1}/${uncategorizedTransactions.length}',
+                                    style: theme.textTheme.labelMedium?.copyWith(
+                                      fontWeight: FontWeight.w600,
+                                      letterSpacing: 0.2,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
               ),
             ],
           );
@@ -225,60 +333,70 @@ class _SwipeScreenState extends State<SwipeScreen> {
   }
 
   Widget _buildEmptyState(BuildContext context) {
+    final theme = Theme.of(context);
     return Container(
-      constraints: const BoxConstraints(
-        maxWidth: 300,
-        maxHeight: 250,
-      ),
-      child: Card(
-        elevation: 4,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Container(
-          padding: const EdgeInsets.all(32),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                Theme.of(context).colorScheme.surfaceVariant,
-                Theme.of(context).colorScheme.surface,
+      padding: const EdgeInsets.all(32),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          // Celebration icon with subtle animation feel
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.secondary.withOpacity(0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.check_circle_rounded,
+              size: 80,
+              color: theme.colorScheme.secondary,
+            ),
+          ),
+          const SizedBox(height: 32),
+
+          // Congratulations text - Apple-style large title
+          Text(
+            'All Caught Up!',
+            style: theme.textTheme.displayMedium,
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 12),
+
+          // Subtitle
+          Text(
+            'No transactions left to categorize',
+            style: theme.textTheme.bodyLarge?.copyWith(
+                  color: theme.textTheme.bodySmall?.color,
+                ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 8),
+
+          // Secondary message
+          Text(
+            'Great job organizing your spending!',
+            style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.textTheme.bodySmall?.color,
+                ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 40),
+
+          // View Charts button - Apple-style
+          ElevatedButton(
+            onPressed: () {
+              DefaultTabController.of(context).animateTo(1);
+            },
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.pie_chart_rounded, size: 20),
+                const SizedBox(width: 8),
+                const Text('View Charts'),
               ],
             ),
           ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                Icons.inbox_outlined,
-                size: 64,
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'No transactions left',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'All transactions have been categorized!',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Theme.of(context)
-                          .colorScheme
-                          .onSurfaceVariant
-                          .withOpacity(0.7),
-                    ),
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ),
-        ),
+        ],
       ),
     );
   }
