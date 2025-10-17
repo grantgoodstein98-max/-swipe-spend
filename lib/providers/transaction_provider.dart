@@ -1,4 +1,6 @@
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/transaction.dart';
 import '../services/plaid_service.dart';
 
@@ -8,7 +10,7 @@ class TransactionProvider extends ChangeNotifier {
   List<Transaction> _transactions = [];
 
   TransactionProvider() {
-    _loadMockTransactions();
+    _loadTransactionsFromStorage();
   }
 
   /// Get all transactions
@@ -22,13 +24,49 @@ class TransactionProvider extends ChangeNotifier {
   List<Transaction> get categorizedTransactions =>
       _transactions.where((t) => t.isCategorized).toList();
 
+  /// Load transactions from SharedPreferences
+  Future<void> _loadTransactionsFromStorage() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final transactionsString = prefs.getString('transactions');
+
+      if (transactionsString != null && transactionsString.isNotEmpty) {
+        final List<dynamic> decoded = jsonDecode(transactionsString);
+        _transactions = decoded.map((json) => Transaction.fromJson(json)).toList();
+        debugPrint('✅ Loaded ${_transactions.length} transactions from storage');
+      } else {
+        debugPrint('ℹ️ No saved transactions found, loading mock data');
+        _loadMockTransactions();
+      }
+
+      notifyListeners();
+    } catch (e) {
+      debugPrint('❌ Error loading transactions from storage: $e');
+      _loadMockTransactions();
+    }
+  }
+
   /// Load mock transactions for testing
   void _loadMockTransactions() {
     try {
       _transactions = _plaidService.generateMockTransactions(count: 15);
+      debugPrint('ℹ️ Loaded ${_transactions.length} mock transactions');
       notifyListeners();
     } catch (e) {
       debugPrint('Error loading mock transactions: $e');
+    }
+  }
+
+  /// Save transactions to SharedPreferences
+  Future<void> _saveTransactions() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final transactionsJson = _transactions.map((t) => t.toJson()).toList();
+      await prefs.setString('transactions', jsonEncode(transactionsJson));
+      debugPrint('✅ Saved ${_transactions.length} transactions to storage');
+    } catch (e) {
+      debugPrint('❌ Error saving transactions: $e');
+      rethrow;
     }
   }
 
@@ -46,13 +84,14 @@ class TransactionProvider extends ChangeNotifier {
   }
 
   /// Categorize a transaction
-  void categorizeTransaction(String transactionId, String categoryId) {
+  Future<void> categorizeTransaction(String transactionId, String categoryId) async {
     try {
       final index = _transactions.indexWhere((t) => t.id == transactionId);
       if (index != -1) {
         _transactions[index].category = categoryId;
         _transactions[index].isCategorized = true;
         notifyListeners();
+        await _saveTransactions();
       }
     } catch (e) {
       debugPrint('Error categorizing transaction: $e');
@@ -61,13 +100,14 @@ class TransactionProvider extends ChangeNotifier {
   }
 
   /// Uncategorize a transaction (undo)
-  void uncategorizeTransaction(String transactionId) {
+  Future<void> uncategorizeTransaction(String transactionId) async {
     try {
       final index = _transactions.indexWhere((t) => t.id == transactionId);
       if (index != -1) {
         _transactions[index].category = null;
         _transactions[index].isCategorized = false;
         notifyListeners();
+        await _saveTransactions();
       }
     } catch (e) {
       debugPrint('Error uncategorizing transaction: $e');
@@ -129,13 +169,15 @@ class TransactionProvider extends ChangeNotifier {
   /// Returns the number of transactions actually imported (excluding duplicates)
   Future<int> importTransactions(List<Transaction> newTransactions) async {
     try {
+      debugPrint('📥 Importing ${newTransactions.length} transactions...');
       int importedCount = 0;
+      int duplicateCount = 0;
 
       for (final newTransaction in newTransactions) {
         // Check for duplicates based on name, amount, and date
         final isDuplicate = _transactions.any((existing) =>
             existing.name == newTransaction.name &&
-            existing.amount == newTransaction.amount &&
+            (existing.amount - newTransaction.amount).abs() < 0.01 &&
             existing.date.year == newTransaction.date.year &&
             existing.date.month == newTransaction.date.month &&
             existing.date.day == newTransaction.date.day);
@@ -143,19 +185,28 @@ class TransactionProvider extends ChangeNotifier {
         if (!isDuplicate) {
           _transactions.add(newTransaction);
           importedCount++;
+        } else {
+          duplicateCount++;
         }
       }
+
+      debugPrint('✅ $importedCount unique transactions');
+      debugPrint('⏭️ $duplicateCount duplicates skipped');
 
       // Sort by date (newest first) after import
       _transactions.sort((a, b) => b.date.compareTo(a.date));
 
       if (importedCount > 0) {
+        await _saveTransactions();
         notifyListeners();
       }
 
+      debugPrint('🔍 Total transactions now: ${_transactions.length}');
+      debugPrint('🔍 Uncategorized: ${uncategorizedTransactions.length}');
+
       return importedCount;
     } catch (e) {
-      debugPrint('Error importing transactions: $e');
+      debugPrint('❌ Error importing transactions: $e');
       rethrow;
     }
   }

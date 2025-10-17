@@ -123,19 +123,22 @@ class _ImportTransactionsScreenState extends State<ImportTransactionsScreen> {
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
-          : _previewTransactions != null
-              ? _buildPreview(theme, isDark)
-              : _buildEmptyState(theme, isDark),
+          : SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              child: _previewTransactions != null
+                  ? _buildPreview(theme, isDark)
+                  : _buildEmptyState(theme, isDark),
+            ),
     );
   }
 
   Widget _buildEmptyState(ThemeData theme, bool isDark) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
+    return Padding(
+      padding: const EdgeInsets.all(32),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
             // File icon
             Container(
               padding: const EdgeInsets.all(24),
@@ -232,17 +235,19 @@ class _ImportTransactionsScreenState extends State<ImportTransactionsScreen> {
             ],
 
             // Pick file button
-            ElevatedButton.icon(
-              onPressed: _pickFile,
-              icon: const Icon(Icons.file_open),
-              label: const Text('Choose File'),
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+            Center(
+              child: ElevatedButton.icon(
+                onPressed: _pickFile,
+                icon: const Icon(Icons.file_open),
+                label: const Text('Choose File'),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                ),
               ),
             ),
+            const SizedBox(height: 32), // Extra bottom padding
           ],
         ),
-      ),
     );
   }
 
@@ -274,6 +279,7 @@ class _ImportTransactionsScreenState extends State<ImportTransactionsScreen> {
     final total = transactions.fold<double>(0, (sum, t) => sum + t.amount);
 
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         // Summary header
         Container(
@@ -356,9 +362,11 @@ class _ImportTransactionsScreenState extends State<ImportTransactionsScreen> {
         ),
 
         // Transaction list
-        Expanded(
+        SizedBox(
+          height: 400,
           child: ListView.builder(
             padding: const EdgeInsets.symmetric(horizontal: 16),
+            shrinkWrap: true,
             itemCount: transactions.length,
             itemBuilder: (context, index) {
               final transaction = transactions[index];
@@ -398,46 +406,35 @@ class _ImportTransactionsScreenState extends State<ImportTransactionsScreen> {
         ),
 
         // Action buttons
-        Container(
+        Padding(
           padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: theme.colorScheme.surface,
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.1),
-                blurRadius: 4,
-                offset: const Offset(0, -2),
+          child: Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () {
+                    setState(() {
+                      _previewTransactions = null;
+                      _fileName = null;
+                      _errorMessage = null;
+                    });
+                  },
+                  child: const Text('Cancel'),
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                flex: 2,
+                child: ElevatedButton.icon(
+                  onPressed: _importTransactions,
+                  icon: const Icon(Icons.download),
+                  label: const Text('Import'),
+                ),
               ),
             ],
           ),
-          child: SafeArea(
-            child: Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () {
-                      setState(() {
-                        _previewTransactions = null;
-                        _fileName = null;
-                        _errorMessage = null;
-                      });
-                    },
-                    child: const Text('Cancel'),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  flex: 2,
-                  child: ElevatedButton.icon(
-                    onPressed: _importTransactions,
-                    icon: const Icon(Icons.download),
-                    label: const Text('Import'),
-                  ),
-                ),
-              ],
-            ),
-          ),
         ),
+        const SizedBox(height: 32), // Extra bottom padding
       ],
     );
   }
