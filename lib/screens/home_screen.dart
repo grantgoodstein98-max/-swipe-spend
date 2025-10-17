@@ -25,34 +25,57 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: _screens[_currentIndex],
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        type: BottomNavigationBarType.fixed,
-        onTap: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
-        },
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.swipe),
-            label: 'Swipe',
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return DefaultTabController(
+      length: 4,
+      initialIndex: _currentIndex,
+      child: Scaffold(
+        body: _screens[_currentIndex],
+        bottomNavigationBar: Container(
+          decoration: BoxDecoration(
+            border: Border(
+              top: BorderSide(
+                color: isDark
+                    ? const Color(0xFF38383A).withOpacity(0.5)
+                    : const Color(0xFFD1D1D6).withOpacity(0.3),
+                width: 0.5,
+              ),
+            ),
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.pie_chart),
-            label: 'Charts',
+          child: BottomNavigationBar(
+            currentIndex: _currentIndex,
+            type: BottomNavigationBarType.fixed,
+            onTap: (index) {
+              setState(() {
+                _currentIndex = index;
+              });
+            },
+            items: const [
+              BottomNavigationBarItem(
+                icon: Icon(Icons.swipe_outlined),
+                activeIcon: Icon(Icons.swipe_rounded),
+                label: 'Swipe',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.pie_chart_outline_rounded),
+                activeIcon: Icon(Icons.pie_chart_rounded),
+                label: 'Charts',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.psychology_outlined),
+                activeIcon: Icon(Icons.psychology_rounded),
+                label: 'AI',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.settings_outlined),
+                activeIcon: Icon(Icons.settings_rounded),
+                label: 'Settings',
+              ),
+            ],
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.psychology),
-            label: 'AI Assistant',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.settings),
-            label: 'Settings',
-          ),
-        ],
+        ),
       ),
     );
   }
