@@ -60,6 +60,21 @@ class TransactionProvider extends ChangeNotifier {
     }
   }
 
+  /// Uncategorize a transaction (undo)
+  void uncategorizeTransaction(String transactionId) {
+    try {
+      final index = _transactions.indexWhere((t) => t.id == transactionId);
+      if (index != -1) {
+        _transactions[index].category = null;
+        _transactions[index].isCategorized = false;
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint('Error uncategorizing transaction: $e');
+      rethrow;
+    }
+  }
+
   /// Get transactions by category
   List<Transaction> getTransactionsByCategory(String categoryId) {
     return _transactions
