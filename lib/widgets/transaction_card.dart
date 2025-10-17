@@ -97,22 +97,23 @@ class TransactionCard extends StatelessWidget {
                     ),
                   ],
           ),
-          padding: const EdgeInsets.all(20),
-          child: Container(
+          padding: const EdgeInsets.all(16),
+          child: SingleChildScrollView(
+            physics: const NeverScrollableScrollPhysics(),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               mainAxisSize: MainAxisSize.min,
               children: [
                 // Merchant icon
                 Container(
-                  padding: const EdgeInsets.all(12),
+                  padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
                     color: theme.colorScheme.primary.withOpacity(0.1),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
                     Icons.store_rounded,
-                    size: 32,
+                    size: 28,
                     color: theme.colorScheme.primary,
                   ),
                 ),
@@ -121,9 +122,9 @@ class TransactionCard extends StatelessWidget {
                 // Transaction name/merchant - Apple headline style
                 Text(
                   transaction.merchantName ?? transaction.name,
-                  style: theme.textTheme.headlineMedium?.copyWith(fontSize: 16),
+                  style: theme.textTheme.headlineMedium?.copyWith(fontSize: 15),
                   textAlign: TextAlign.center,
-                  maxLines: 2,
+                  maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 6),
@@ -133,33 +134,34 @@ class TransactionCard extends StatelessWidget {
                   transaction.formattedAmount,
                   style: theme.textTheme.displaySmall?.copyWith(
                         color: theme.colorScheme.primary,
-                        fontSize: 20,
+                        fontSize: 18,
                         fontFeatures: [const FontFeature.tabularFigures()],
                       ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 6),
 
                 // Date - Subtle badge
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
                     color: isDark
                         ? const Color(0xFF2C2C2E)
                         : const Color(0xFFF2F2F7),
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(6),
                   ),
                   child: Text(
                     transaction.formattedDate,
-                    style: theme.textTheme.labelMedium,
+                    style: theme.textTheme.labelSmall,
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 6),
 
                 // Swipe instruction
                 Text(
                   'Swipe to categorize',
                   style: theme.textTheme.labelSmall?.copyWith(
                         fontStyle: FontStyle.italic,
+                        fontSize: 10,
                       ),
                 ),
               ],
