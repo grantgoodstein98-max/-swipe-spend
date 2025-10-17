@@ -7,6 +7,7 @@ import '../widgets/chat_bubble.dart';
 import '../widgets/typing_indicator.dart';
 import '../widgets/suggested_prompt_chip.dart';
 import '../config/api_config.dart';
+import 'settings_screen.dart';
 
 /// AI-powered budget assistant chat screen
 class AiAssistantScreen extends StatefulWidget {
@@ -66,6 +67,19 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
             onPressed: _confirmClearChat,
             tooltip: 'Clear Chat',
           ),
+          IconButton(
+            icon: const Icon(Icons.settings_outlined, size: 24),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const SettingsScreen(),
+                ),
+              );
+            },
+            tooltip: 'Settings',
+          ),
+          const SizedBox(width: 8),
         ],
       ),
       body: Column(

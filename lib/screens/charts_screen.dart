@@ -10,6 +10,7 @@ import '../providers/category_provider.dart';
 import '../providers/theme_provider.dart';
 import '../utils/chart_helper.dart';
 import '../utils/color_helper.dart';
+import 'settings_screen.dart';
 
 /// Screen for viewing spending charts and analytics
 class ChartsScreen extends StatefulWidget {
@@ -74,6 +75,21 @@ class _ChartsScreenState extends State<ChartsScreen> with TickerProviderStateMix
           'Spending',
           style: theme.textTheme.displayLarge,
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.settings_outlined, size: 24),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const SettingsScreen(),
+                ),
+              );
+            },
+            tooltip: 'Settings',
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
       body: Consumer3<TransactionProvider, CategoryProvider, ThemeProvider>(
         builder: (context, transactionProvider, categoryProvider, themeProvider, child) {

@@ -6,6 +6,7 @@ import '../models/category.dart' as model;
 import '../providers/transaction_provider.dart';
 import '../providers/category_provider.dart';
 import '../widgets/transaction_card.dart';
+import 'settings_screen.dart';
 
 /// Screen for swiping to categorize transactions
 class SwipeScreen extends StatefulWidget {
@@ -61,7 +62,12 @@ class _SwipeScreenState extends State<SwipeScreen> {
           IconButton(
             icon: const Icon(Icons.settings_outlined, size: 24),
             onPressed: () {
-              DefaultTabController.of(context).animateTo(3);
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const SettingsScreen(),
+                ),
+              );
             },
             tooltip: 'Settings',
           ),
@@ -235,9 +241,9 @@ class _SwipeScreenState extends State<SwipeScreen> {
                     : Center(
                         child: Container(
                           constraints: BoxConstraints(
-                            maxWidth: 300,
+                            maxWidth: MediaQuery.of(context).size.width * 0.90,  // Increased from 300
                             maxHeight:
-                                MediaQuery.of(context).size.height * 0.4,
+                                MediaQuery.of(context).size.height * 0.55,  // Increased from 0.4 (37.5% larger)
                           ),
                           child: Stack(
                             children: [
@@ -281,20 +287,20 @@ class _SwipeScreenState extends State<SwipeScreen> {
                                   },
                                 ),
                               ),
-                              // Card counter with frosted glass effect
+                              // Card counter with frosted glass effect - repositioned above card
                               Positioned(
-                                top: 0,
-                                right: 20,
+                                top: -10,  // Position above card area
+                                right: 40,  // More margin from edge
                                 child: Container(
                                   padding: const EdgeInsets.symmetric(
-                                    horizontal: 14,
-                                    vertical: 7,
+                                    horizontal: 16,  // Slightly larger
+                                    vertical: 8,
                                   ),
                                   decoration: BoxDecoration(
                                     color: theme.brightness == Brightness.light
                                         ? Colors.white.withOpacity(0.9)
                                         : Colors.black.withOpacity(0.7),
-                                    borderRadius: BorderRadius.circular(18),
+                                    borderRadius: BorderRadius.circular(20),
                                     border: Border.all(
                                       color: theme.brightness == Brightness.light
                                           ? Colors.black.withOpacity(0.08)
@@ -304,7 +310,7 @@ class _SwipeScreenState extends State<SwipeScreen> {
                                     boxShadow: theme.brightness == Brightness.light
                                         ? [
                                             BoxShadow(
-                                              color: Colors.black.withOpacity(0.1),
+                                              color: Colors.black.withOpacity(0.15),
                                               blurRadius: 12,
                                               offset: const Offset(0, 4),
                                             ),
@@ -315,7 +321,8 @@ class _SwipeScreenState extends State<SwipeScreen> {
                                     '${_currentCardIndex + 1}/${uncategorizedTransactions.length}',
                                     style: theme.textTheme.labelMedium?.copyWith(
                                       fontWeight: FontWeight.w600,
-                                      letterSpacing: 0.2,
+                                      letterSpacing: 0.5,
+                                      fontSize: 14,  // Slightly larger
                                     ),
                                   ),
                                 ),

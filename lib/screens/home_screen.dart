@@ -15,12 +15,11 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _currentIndex = 0;
 
-  // List of screens for each tab
+  // List of screens for each tab (Settings removed - accessed via AppBar icon)
   final List<Widget> _screens = const [
     SwipeScreen(),
     ChartsScreen(),
     AiAssistantScreen(),
-    SettingsScreen(),
   ];
 
   @override
@@ -29,7 +28,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final isDark = theme.brightness == Brightness.dark;
 
     return DefaultTabController(
-      length: 4,
+      length: 3,
       initialIndex: _currentIndex,
       child: Scaffold(
         body: _screens[_currentIndex],
@@ -67,11 +66,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 icon: Icon(Icons.psychology_outlined),
                 activeIcon: Icon(Icons.psychology_rounded),
                 label: 'AI',
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.settings_outlined),
-                activeIcon: Icon(Icons.settings_rounded),
-                label: 'Settings',
               ),
             ],
           ),
