@@ -1,95 +1,120 @@
-import 'dart:js' as js;
-import 'dart:js_util' as js_util;
+import 'dart:async';
+import 'dart:html' as html;
 import 'package:flutter/foundation.dart' show debugPrint;
 
-/// Web-specific Plaid Link implementation using JavaScript interop
+/// Web-specific Plaid Link implementation using iframe and postMessage
 class PlaidWebService {
-  /// Open Plaid Link on web using JavaScript SDK
+  static html.IFrameElement? _iframe;
+  static Completer<Map<String, dynamic>?>? _completer;
+  static StreamSubscription? _messageSubscription;
+
+  /// Open Plaid Link on web using iframe approach
   static Future<Map<String, dynamic>?> openPlaidLink(String linkToken) async {
-    debugPrint('🌐 Opening Plaid Link on web...');
+    debugPrint('🌐 Opening Plaid Link via iframe...');
 
     try {
-      // Create a completer to handle async callback
-      final result = await _openPlaidLinkJS(linkToken);
-      return result;
-    } catch (e) {
-      debugPrint('❌ Error opening Plaid Link: $e');
-      return null;
-    }
-  }
+      // Clean up any existing iframe/listeners
+      _cleanup();
 
-  /// JavaScript interop to open Plaid Link
-  static Future<Map<String, dynamic>?> _openPlaidLinkJS(String linkToken) async {
-    return Future<Map<String, dynamic>?>(() {
-      Map<String, dynamic>? result;
+      // Create completer for async result
+      _completer = Completer<Map<String, dynamic>?>();
 
-      // Create Plaid Link handler configuration
-      final config = js_util.jsify({
-        'token': linkToken,
-        'onSuccess': js.allowInterop((publicToken, metadata) {
-          debugPrint('✅ Plaid Link Success!');
-          debugPrint('   Public Token: ${publicToken.toString().substring(0, 20)}...');
+      // Create iframe element
+      _iframe = html.IFrameElement()
+        ..src = 'plaid_link.html'
+        ..style.position = 'fixed'
+        ..style.top = '0'
+        ..style.left = '0'
+        ..style.width = '100%'
+        ..style.height = '100%'
+        ..style.border = 'none'
+        ..style.zIndex = '9999'
+        ..style.background = 'rgba(0, 0, 0, 0.5)';
 
-          result = {
-            'publicToken': publicToken.toString(),
-            'metadata': {
-              'institution': {
-                'name': js_util.getProperty(js_util.getProperty(metadata, 'institution'), 'name'),
-                'institution_id': js_util.getProperty(js_util.getProperty(metadata, 'institution'), 'institution_id'),
-              },
-              'accounts': _extractAccounts(metadata),
-            },
-          };
-        }),
-        'onExit': js.allowInterop((error, metadata) {
-          if (error != null) {
-            debugPrint('❌ Plaid Link Error: ${js_util.getProperty(error, 'error_message')}');
-          } else {
-            debugPrint('ℹ️  Plaid Link closed by user');
+      // Add iframe to body
+      html.document.body?.append(_iframe!);
+      debugPrint('✅ Iframe created and added to DOM');
+
+      // Set up message listener
+      _messageSubscription = html.window.onMessage.listen((event) {
+        final data = event.data;
+        debugPrint('📨 Received message from iframe: $data');
+
+        if (data is Map) {
+          final type = data['type'];
+
+          switch (type) {
+            case 'PLAID_READY':
+              debugPrint('✅ Plaid iframe is ready, sending link token');
+              // Send link token to iframe
+              _iframe?.contentWindow?.postMessage({
+                'type': 'OPEN_PLAID_LINK',
+                'linkToken': linkToken,
+              }, '*');
+              break;
+
+            case 'PLAID_SUCCESS':
+              debugPrint('✅ Plaid Link success!');
+              final publicToken = data['publicToken'];
+              final metadata = data['metadata'];
+
+              if (!_completer!.isCompleted) {
+                _completer!.complete({
+                  'publicToken': publicToken,
+                  'metadata': metadata,
+                });
+              }
+              _cleanup();
+              break;
+
+            case 'PLAID_ERROR':
+              debugPrint('❌ Plaid Link error: ${data['error']}');
+              if (!_completer!.isCompleted) {
+                _completer!.completeError(Exception(data['error']));
+              }
+              _cleanup();
+              break;
+
+            case 'PLAID_EXIT':
+              debugPrint('ℹ️  Plaid Link closed by user');
+              if (!_completer!.isCompleted) {
+                _completer!.complete(null);
+              }
+              _cleanup();
+              break;
           }
-          result = null;
-        }),
+        }
       });
 
-      // Create Plaid Link handler
-      final handler = js_util.callMethod(
-        js.context['Plaid'],
-        'create',
-        [config],
+      // Wait for result with timeout
+      return await _completer!.future.timeout(
+        const Duration(minutes: 5),
+        onTimeout: () {
+          debugPrint('⏱️  Plaid Link timeout');
+          _cleanup();
+          throw TimeoutException('Plaid Link timeout');
+        },
       );
-
-      // Open Plaid Link
-      js_util.callMethod(handler, 'open', []);
-
-      // Wait for result (polling approach)
-      return Future.delayed(const Duration(seconds: 1), () => result);
-    });
+    } catch (e) {
+      debugPrint('❌ Error in openPlaidLink: $e');
+      _cleanup();
+      rethrow;
+    }
   }
 
-  /// Extract accounts from metadata
-  static List<Map<String, dynamic>> _extractAccounts(dynamic metadata) {
-    try {
-      final accountsJS = js_util.getProperty(metadata, 'accounts');
-      if (accountsJS == null) return [];
+  /// Clean up iframe and listeners
+  static void _cleanup() {
+    debugPrint('🧹 Cleaning up Plaid iframe');
 
-      final accountsList = <Map<String, dynamic>>[];
-      final length = js_util.getProperty(accountsJS, 'length') as int;
+    _messageSubscription?.cancel();
+    _messageSubscription = null;
 
-      for (var i = 0; i < length; i++) {
-        final account = js_util.getProperty(accountsJS, i.toString());
-        accountsList.add({
-          'id': js_util.getProperty(account, 'id'),
-          'name': js_util.getProperty(account, 'name'),
-          'mask': js_util.getProperty(account, 'mask'),
-          'type': js_util.getProperty(account, 'type'),
-          'subtype': js_util.getProperty(account, 'subtype'),
-        });
-      }
+    _iframe?.remove();
+    _iframe = null;
 
-      return accountsList;
-    } catch (e) {
-      debugPrint('⚠️  Error extracting accounts: $e');
-      return [];
+    if (_completer != null && !_completer!.isCompleted) {
+      _completer!.complete(null);
     }
+    _completer = null;
   }
 }

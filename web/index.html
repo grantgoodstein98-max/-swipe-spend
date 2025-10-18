@@ -31,11 +31,24 @@
 
   <title>swipe_spend</title>
   <link rel="manifest" href="manifest.json">
-
-  <!-- Plaid Link SDK -->
-  <script src="https://cdn.plaid.com/link/v2/stable/link-initialize.js"></script>
 </head>
 <body>
+  <!-- Plaid Link SDK - Load synchronously before everything -->
+  <script src="https://cdn.plaid.com/link/v2/stable/link-initialize.js"></script>
+
+  <!-- Verify Plaid loaded and log -->
+  <script>
+    console.log('🔍 Checking Plaid SDK...');
+    if (window.Plaid) {
+      console.log('✅ Plaid SDK loaded successfully');
+      window.plaidReady = true;
+    } else {
+      console.error('❌ Plaid SDK failed to load');
+      window.plaidReady = false;
+    }
+  </script>
+
+  <!-- Flutter Bootstrap -->
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>
