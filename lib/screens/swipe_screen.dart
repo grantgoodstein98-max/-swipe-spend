@@ -238,12 +238,17 @@ class _SwipeScreenState extends State<SwipeScreen> {
 
               // Swipe area
               Expanded(
-                child: Center(
-                  child: Container(
-                    constraints: BoxConstraints(
-                      maxWidth: MediaQuery.of(context).size.width * 0.90,
-                      maxHeight: MediaQuery.of(context).size.height * 0.55,
-                    ),
+                child: Padding(
+                  padding: EdgeInsets.only(
+                    bottom: 40,
+                    left: MediaQuery.of(context).size.width / 3,
+                  ),
+                  child: Center(
+                    child: Container(
+                      constraints: BoxConstraints(
+                        maxWidth: MediaQuery.of(context).size.width * 0.90,
+                        maxHeight: MediaQuery.of(context).size.height * 0.55,
+                      ),
                     child: Stack(
                       alignment: Alignment.center,
                       children: [
@@ -355,6 +360,7 @@ class _SwipeScreenState extends State<SwipeScreen> {
                             ),
                           ),
                       ],
+                    ),
                     ),
                   ),
                 ),
