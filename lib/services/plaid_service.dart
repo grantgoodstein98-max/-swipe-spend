@@ -14,9 +14,9 @@ import '../models/transaction.dart';
 /// 4. Generate link tokens from your backend
 class PlaidService {
   // Plaid configuration
-  // TODO: Replace with your actual Plaid credentials from https://dashboard.plaid.com/
-  static const String _clientId = 'YOUR_PLAID_CLIENT_ID_HERE';
-  static const String _secret = 'YOUR_PLAID_SECRET_HERE';
+  // Credentials from Plaid Dashboard (Sandbox mode)
+  static const String _clientId = '68f2cbfc7c634d00204cb232';
+  static const String _secret = 'd1260af14dc3d7df25c645f7739a67';
   static const String _environment = 'sandbox'; // sandbox for testing
 
   PlaidLink? _plaidLink;
