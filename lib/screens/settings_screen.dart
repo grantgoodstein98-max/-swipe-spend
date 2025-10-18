@@ -538,17 +538,20 @@ class SettingsScreen extends StatelessWidget {
     final currentCategory = categoryId != null
         ? categoryProvider.getCategoryById(categoryId)
         : null;
+    final isDownDirection = direction == model.SwipeDirection.down;
 
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: () => _showCategoryPicker(
-          context,
-          title,
-          direction,
-          categories,
-          categoryProvider,
-        ),
+        onTap: isDownDirection
+            ? null // Disable tap for down direction
+            : () => _showCategoryPicker(
+                  context,
+                  title,
+                  direction,
+                  categories,
+                  categoryProvider,
+                ),
         borderRadius: BorderRadius.vertical(
           top: isFirst ? const Radius.circular(12) : Radius.zero,
           bottom: isLast ? const Radius.circular(12) : Radius.zero,
@@ -609,9 +612,9 @@ class SettingsScreen extends StatelessWidget {
                 ),
               ),
 
-              // iOS-style chevron
+              // iOS-style chevron or lock icon
               Icon(
-                Icons.chevron_right,
+                isDownDirection ? Icons.lock_outline : Icons.chevron_right,
                 color: theme.textTheme.bodySmall?.color,
                 size: 20,
               ),
@@ -630,6 +633,16 @@ class SettingsScreen extends StatelessWidget {
     List<model.Category> categories,
     CategoryProvider categoryProvider,
   ) {
+    // Don't allow changing down swipe (reserved for "Other")
+    if (direction == model.SwipeDirection.down) {
+      return;
+    }
+
+    // Filter out "Other" category for non-down directions
+    final selectableCategories = categories
+        .where((c) => c.name.toLowerCase() != 'other')
+        .toList();
+
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
@@ -684,13 +697,13 @@ class SettingsScreen extends StatelessWidget {
                 ),
                 child: ListView.separated(
                   shrinkWrap: true,
-                  itemCount: categories.length,
+                  itemCount: selectableCategories.length,
                   separatorBuilder: (context, index) => const Divider(
                     height: 1,
                     indent: 72,
                   ),
                   itemBuilder: (context, index) {
-                    final category = categories[index];
+                    final category = selectableCategories[index];
                     final isCurrentlyMapped =
                         categoryProvider.getCategoryForSwipe(direction) ==
                             category.id;
@@ -807,21 +820,11 @@ class SettingsScreen extends StatelessWidget {
               ),
               const SizedBox(width: 12),
 
-              // Category name and swipe direction
+              // Category name
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      category.name,
-                      style: theme.textTheme.bodyLarge,
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      _getDirectionDisplayName(category.swipeDirection),
-                      style: theme.textTheme.bodySmall,
-                    ),
-                  ],
+                child: Text(
+                  category.name,
+                  style: theme.textTheme.bodyLarge,
                 ),
               ),
 
@@ -864,22 +867,7 @@ class SettingsScreen extends StatelessWidget {
     BuildContext context,
     CategoryProvider categoryProvider,
   ) async {
-    final availableDirections = categoryProvider.getAvailableDirections();
-
-    if (availableDirections.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('All swipe directions are already assigned'),
-          duration: Duration(seconds: 2),
-        ),
-      );
-      return;
-    }
-
-    final newCategory = await AddCategoryDialog.showAdd(
-      context,
-      availableDirections,
-    );
+    final newCategory = await AddCategoryDialog.showAdd(context);
 
     if (newCategory != null) {
       try {
@@ -917,14 +905,9 @@ class SettingsScreen extends StatelessWidget {
     model.Category category,
     CategoryProvider categoryProvider,
   ) async {
-    final availableDirections = categoryProvider.getAvailableDirections(
-      excludeCategoryId: category.id,
-    );
-
     final updatedCategory = await AddCategoryDialog.showEdit(
       context,
       category,
-      availableDirections,
     );
 
     if (updatedCategory != null) {

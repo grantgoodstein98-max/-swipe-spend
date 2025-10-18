@@ -9,14 +9,12 @@ class Category {
   final String id;
   final String name;
   final String colorHex;
-  final SwipeDirection swipeDirection;
   final String iconName;
 
   Category({
     required this.id,
     required this.name,
     required this.colorHex,
-    required this.swipeDirection,
     required this.iconName,
   });
 
@@ -26,7 +24,6 @@ class Category {
       'id': id,
       'name': name,
       'colorHex': colorHex,
-      'swipeDirection': swipeDirection.toString().split('.').last,
       'iconName': iconName,
     };
   }
@@ -37,9 +34,6 @@ class Category {
       id: json['id'] as String,
       name: json['name'] as String,
       colorHex: json['colorHex'] as String,
-      swipeDirection: SwipeDirection.values.firstWhere(
-        (e) => e.toString().split('.').last == json['swipeDirection'],
-      ),
       iconName: json['iconName'] as String,
     );
   }
@@ -65,7 +59,7 @@ class Category {
 
   @override
   String toString() {
-    return 'Category{id: $id, name: $name, swipeDirection: $swipeDirection}';
+    return 'Category{id: $id, name: $name}';
   }
 
   /// Create default categories for initial setup
@@ -75,44 +69,42 @@ class Category {
         id: '1',
         name: 'Food',
         colorHex: 'FF5722',
-        swipeDirection: SwipeDirection.up,
         iconName: 'restaurant',
       ),
       Category(
         id: '2',
         name: 'Transport',
         colorHex: '2196F3',
-        swipeDirection: SwipeDirection.right,
         iconName: 'directions_car',
       ),
       Category(
         id: '3',
         name: 'Shopping',
         colorHex: 'E91E63',
-        swipeDirection: SwipeDirection.down,
         iconName: 'shopping_bag',
       ),
       Category(
         id: '4',
         name: 'Entertainment',
         colorHex: '9C27B0',
-        swipeDirection: SwipeDirection.left,
         iconName: 'movie',
       ),
       Category(
         id: '5',
-        name: 'Bills',
-        colorHex: 'FF9800',
-        swipeDirection: SwipeDirection.up,
-        iconName: 'receipt',
-      ),
-      Category(
-        id: '6',
         name: 'Other',
         colorHex: '607D8B',
-        swipeDirection: SwipeDirection.down,
         iconName: 'category',
       ),
     ];
+  }
+
+  /// Get default swipe mappings (Other=down, top 3 categories for other directions)
+  static Map<SwipeDirection, String> getDefaultSwipeMappings() {
+    return {
+      SwipeDirection.down: '5',  // Other - fixed
+      SwipeDirection.up: '1',     // Food
+      SwipeDirection.right: '2',  // Transport
+      SwipeDirection.left: '3',   // Shopping
+    };
   }
 }

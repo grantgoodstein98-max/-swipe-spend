@@ -7,24 +7,17 @@ import '../utils/available_icons.dart';
 /// Dialog for adding or editing a category
 class AddCategoryDialog extends StatefulWidget {
   final model.Category? existingCategory;
-  final List<model.SwipeDirection> availableDirections;
 
   const AddCategoryDialog({
     super.key,
     this.existingCategory,
-    required this.availableDirections,
   });
 
   /// Show the dialog for adding a new category
-  static Future<model.Category?> showAdd(
-    BuildContext context,
-    List<model.SwipeDirection> availableDirections,
-  ) {
+  static Future<model.Category?> showAdd(BuildContext context) {
     return showDialog<model.Category>(
       context: context,
-      builder: (context) => AddCategoryDialog(
-        availableDirections: availableDirections,
-      ),
+      builder: (context) => const AddCategoryDialog(),
     );
   }
 
@@ -32,13 +25,11 @@ class AddCategoryDialog extends StatefulWidget {
   static Future<model.Category?> showEdit(
     BuildContext context,
     model.Category category,
-    List<model.SwipeDirection> availableDirections,
   ) {
     return showDialog<model.Category>(
       context: context,
       builder: (context) => AddCategoryDialog(
         existingCategory: category,
-        availableDirections: availableDirections,
       ),
     );
   }
@@ -51,7 +42,6 @@ class _AddCategoryDialogState extends State<AddCategoryDialog> {
   final TextEditingController _nameController = TextEditingController();
   String _iconName = 'category';
   Color _color = const Color(0xFF607D8B);
-  model.SwipeDirection? _swipeDirection;
 
   @override
   void initState() {
@@ -60,9 +50,6 @@ class _AddCategoryDialogState extends State<AddCategoryDialog> {
       _nameController.text = widget.existingCategory!.name;
       _iconName = widget.existingCategory!.iconName;
       _color = widget.existingCategory!.color;
-      _swipeDirection = widget.existingCategory!.swipeDirection;
-    } else if (widget.availableDirections.isNotEmpty) {
-      _swipeDirection = widget.availableDirections.first;
     }
   }
 
@@ -142,22 +129,8 @@ class _AddCategoryDialogState extends State<AddCategoryDialog> {
     );
   }
 
-  String _getDirectionName(model.SwipeDirection direction) {
-    switch (direction) {
-      case model.SwipeDirection.up:
-        return 'Up';
-      case model.SwipeDirection.down:
-        return 'Down';
-      case model.SwipeDirection.left:
-        return 'Left';
-      case model.SwipeDirection.right:
-        return 'Right';
-    }
-  }
-
   bool _canSave() {
-    return _nameController.text.trim().isNotEmpty &&
-           _swipeDirection != null;
+    return _nameController.text.trim().isNotEmpty;
   }
 
   void _save() {
@@ -167,7 +140,6 @@ class _AddCategoryDialogState extends State<AddCategoryDialog> {
       id: widget.existingCategory?.id ?? DateTime.now().millisecondsSinceEpoch.toString(),
       name: _nameController.text.trim(),
       colorHex: _color.value.toRadixString(16).substring(2).toUpperCase(),
-      swipeDirection: _swipeDirection!,
       iconName: _iconName,
     );
 
@@ -330,55 +302,6 @@ class _AddCategoryDialogState extends State<AddCategoryDialog> {
                 ),
               ),
             ),
-            const SizedBox(height: 16),
-
-            // Swipe direction
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: isDark
-                    ? const Color(0xFF2C2C2E)
-                    : const Color(0xFFF2F2F7),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Swipe Direction',
-                    style: theme.textTheme.labelSmall,
-                  ),
-                  const SizedBox(height: 8),
-                  DropdownButtonFormField<model.SwipeDirection>(
-                    value: _swipeDirection,
-                    decoration: const InputDecoration(
-                      border: InputBorder.none,
-                      contentPadding: EdgeInsets.zero,
-                    ),
-                    items: widget.availableDirections.map((direction) {
-                      return DropdownMenuItem(
-                        value: direction,
-                        child: Row(
-                          children: [
-                            Icon(
-                              _getDirectionIcon(direction),
-                              size: 20,
-                            ),
-                            const SizedBox(width: 8),
-                            Text(_getDirectionName(direction)),
-                          ],
-                        ),
-                      );
-                    }).toList(),
-                    onChanged: (value) {
-                      setState(() {
-                        _swipeDirection = value;
-                      });
-                    },
-                  ),
-                ],
-              ),
-            ),
             const SizedBox(height: 24),
 
             // Action buttons
@@ -415,18 +338,5 @@ class _AddCategoryDialogState extends State<AddCategoryDialog> {
         ),
       ),
     );
-  }
-
-  IconData _getDirectionIcon(model.SwipeDirection direction) {
-    switch (direction) {
-      case model.SwipeDirection.up:
-        return Icons.arrow_upward;
-      case model.SwipeDirection.down:
-        return Icons.arrow_downward;
-      case model.SwipeDirection.left:
-        return Icons.arrow_back;
-      case model.SwipeDirection.right:
-        return Icons.arrow_forward;
-    }
   }
 }

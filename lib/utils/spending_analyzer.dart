@@ -63,7 +63,6 @@ class SpendingAnalyzer {
           id: entry.key,
           name: 'Unknown',
           colorHex: '000000',
-          swipeDirection: SwipeDirection.up,
           iconName: 'help_outline',
         ),
       );
@@ -96,7 +95,6 @@ class SpendingAnalyzer {
         id: '',
         name: 'Uncategorized',
         colorHex: '000000',
-        swipeDirection: SwipeDirection.up,
         iconName: 'help_outline',
       ),
     );
@@ -117,7 +115,6 @@ class SpendingAnalyzer {
           id: mostFrequent.key,
           name: 'Unknown',
           colorHex: '000000',
-          swipeDirection: SwipeDirection.up,
           iconName: 'help_outline',
         ),
       );
