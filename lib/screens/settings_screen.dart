@@ -4,6 +4,7 @@ import '../models/category.dart' as model;
 import '../providers/category_provider.dart';
 import '../providers/theme_provider.dart';
 import '../providers/guest_mode_provider.dart';
+import '../providers/plaid_provider.dart';
 import '../widgets/add_category_dialog.dart';
 import 'import_transactions_screen.dart';
 import '../services/auth_service.dart';
@@ -109,6 +110,75 @@ class SettingsScreen extends StatelessWidget {
                           ),
                         ],
                       ),
+                    ),
+                    _buildDivider(context),
+                    // Connect Bank Account Button
+                    Consumer<PlaidProvider>(
+                      builder: (context, plaidProvider, child) {
+                        return Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            onTap: plaidProvider.isLinked
+                                ? () => _showDisconnectBankDialog(context, plaidProvider)
+                                : () => plaidProvider.connectBankAccount(context),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 12,
+                              ),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      color: plaidProvider.isLinked
+                                          ? Colors.green.withOpacity(0.1)
+                                          : theme.colorScheme.primary.withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Icon(
+                                      plaidProvider.isLinked
+                                          ? Icons.account_balance
+                                          : Icons.add_link,
+                                      color: plaidProvider.isLinked
+                                          ? Colors.green
+                                          : theme.colorScheme.primary,
+                                      size: 22,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          plaidProvider.isLinked
+                                              ? 'Connected Bank'
+                                              : 'Connect Bank Account',
+                                          style: theme.textTheme.bodyLarge?.copyWith(
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                        if (plaidProvider.isLinked && plaidProvider.linkedInstitutionName != null)
+                                          Text(
+                                            plaidProvider.linkedInstitutionName!,
+                                            style: theme.textTheme.bodySmall,
+                                          ),
+                                      ],
+                                    ),
+                                  ),
+                                  if (plaidProvider.isLinked)
+                                    Icon(
+                                      Icons.check_circle,
+                                      color: Colors.green,
+                                      size: 20,
+                                    ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        );
+                      },
                     ),
                     _buildDivider(context),
                     // Sign Out / Exit Guest Mode Button
@@ -1071,5 +1141,51 @@ class SettingsScreen extends StatelessWidget {
         }
       }
     }
+  }
+
+  /// Show disconnect bank account dialog
+  static void _showDisconnectBankDialog(BuildContext context, PlaidProvider plaidProvider) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: isDark ? const Color(0xFF1C1C1E) : Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(
+          'Disconnect Bank?',
+          style: theme.textTheme.headlineSmall?.copyWith(
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        content: Text(
+          'This will remove your bank connection. You can reconnect anytime.',
+          style: theme.textTheme.bodyMedium,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              plaidProvider.disconnect();
+              Navigator.of(context).pop();
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Bank account disconnected'),
+                  duration: Duration(seconds: 2),
+                ),
+              );
+            },
+            style: TextButton.styleFrom(
+              foregroundColor: theme.colorScheme.error,
+            ),
+            child: const Text('Disconnect'),
+          ),
+        ],
+      ),
+    );
   }
 }

@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../models/transaction.dart';
 import '../services/import_service.dart';
 import '../providers/transaction_provider.dart';
+import '../providers/plaid_provider.dart';
 
 /// Screen for importing transactions from CSV/Excel files
 class ImportTransactionsScreen extends StatefulWidget {
@@ -18,6 +19,49 @@ class _ImportTransactionsScreenState extends State<ImportTransactionsScreen> {
   bool _isLoading = false;
   String? _errorMessage;
   String? _fileName;
+
+  Future<void> _syncFromPlaid(PlaidProvider plaidProvider) async {
+    try {
+      final transactions = await plaidProvider.syncTransactions();
+
+      if (transactions.isEmpty) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('No new transactions found'),
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+        return;
+      }
+
+      setState(() {
+        _previewTransactions = transactions;
+        _fileName = 'Plaid (${plaidProvider.linkedInstitutionName})';
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Found ${transactions.length} transactions!'),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error syncing: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    }
+  }
 
   Future<void> _pickFile() async {
     try {
@@ -243,15 +287,81 @@ class _ImportTransactionsScreenState extends State<ImportTransactionsScreen> {
               const SizedBox(height: 24),
             ],
 
-            // Pick file button
+            // Import buttons
             Center(
-              child: ElevatedButton.icon(
-                onPressed: _pickFile,
-                icon: const Icon(Icons.file_open),
-                label: const Text('Choose File'),
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-                ),
+              child: Column(
+                children: [
+                  // Pick file button
+                  ElevatedButton.icon(
+                    onPressed: _pickFile,
+                    icon: const Icon(Icons.file_open),
+                    label: const Text('Choose File'),
+                    style: ElevatedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                    ),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // OR divider
+                  Row(
+                    children: [
+                      const Expanded(child: Divider()),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: Text(
+                          'OR',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: Colors.grey,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                      const Expanded(child: Divider()),
+                    ],
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  // Sync from Plaid button
+                  Consumer<PlaidProvider>(
+                    builder: (context, plaidProvider, child) {
+                      if (!plaidProvider.isLinked) {
+                        return OutlinedButton.icon(
+                          onPressed: () => plaidProvider.connectBankAccount(context),
+                          icon: const Icon(Icons.account_balance),
+                          label: const Text('Connect Bank Account'),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                          ),
+                        );
+                      }
+
+                      return ElevatedButton.icon(
+                        onPressed: plaidProvider.isLoading
+                            ? null
+                            : () => _syncFromPlaid(plaidProvider),
+                        icon: plaidProvider.isLoading
+                            ? const SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(strokeWidth: 2),
+                              )
+                            : const Icon(Icons.sync),
+                        label: Text(
+                          plaidProvider.isLoading
+                              ? 'Syncing...'
+                              : 'Sync from ${plaidProvider.linkedInstitutionName ?? "Bank"}',
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                          backgroundColor: Colors.green,
+                          foregroundColor: Colors.white,
+                        ),
+                      );
+                    },
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 32), // Extra bottom padding
