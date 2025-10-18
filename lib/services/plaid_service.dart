@@ -81,7 +81,7 @@ class PlaidService {
     try {
       // Use deployed backend or localhost for development
       final backendUrl = kIsWeb
-          ? 'https://backend-1gkar4rt2-grants-projects-45de1bc8.vercel.app'
+          ? 'https://backend-fuy6mrr7c-grants-projects-45de1bc8.vercel.app'
           : 'http://localhost:3000';
 
       final response = await http.post(
