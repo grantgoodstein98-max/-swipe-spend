@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../models/category.dart' as model;
 import '../providers/category_provider.dart';
 import '../providers/theme_provider.dart';
+import '../widgets/add_category_dialog.dart';
 import 'import_transactions_screen.dart';
 
 /// Screen for managing categories and app settings
@@ -165,6 +166,123 @@ class SettingsScreen extends StatelessWidget {
                   ),
                 ),
               ),
+
+              // iOS-style Categories Section
+              _buildSectionHeader(context, 'CATEGORIES'),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Text(
+                  'Manage your spending categories',
+                  style: theme.textTheme.labelLarge,
+                ),
+              ),
+              const SizedBox(height: 12),
+
+              // Categories list
+              Container(
+                margin: const EdgeInsets.symmetric(horizontal: 16),
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF1C1C1E) : Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: isDark
+                      ? Border.all(
+                          color: const Color(0xFF38383A).withOpacity(0.5),
+                          width: 0.5,
+                        )
+                      : null,
+                  boxShadow: isDark
+                      ? null
+                      : [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.05),
+                            blurRadius: 3,
+                            offset: const Offset(0, 1),
+                          ),
+                        ],
+                ),
+                child: Column(
+                  children: [
+                    ...List.generate(
+                      categories.length,
+                      (index) {
+                        final category = categories[index];
+                        return Column(
+                          children: [
+                            if (index > 0) _buildDivider(context),
+                            _buildCategoryRow(
+                              context,
+                              category,
+                              categoryProvider,
+                              isFirst: index == 0,
+                              isLast: index == categories.length - 1,
+                            ),
+                          ],
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+
+              // Add Category button
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: () => _showAddCategoryDialog(context, categoryProvider),
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: isDark ? const Color(0xFF1C1C1E) : Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        border: isDark
+                            ? Border.all(
+                                color: const Color(0xFF38383A).withOpacity(0.5),
+                                width: 0.5,
+                              )
+                            : null,
+                        boxShadow: isDark
+                            ? null
+                            : [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.05),
+                                  blurRadius: 3,
+                                  offset: const Offset(0, 1),
+                                ),
+                              ],
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.primary.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Icon(
+                              Icons.add,
+                              color: theme.colorScheme.primary,
+                              size: 22,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Text(
+                            'Add Category',
+                            style: theme.textTheme.bodyLarge?.copyWith(
+                              color: theme.colorScheme.primary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
 
               // iOS-style Swipe Mapping Section
               _buildSectionHeader(context, 'SWIPE MAPPING'),
@@ -526,5 +644,261 @@ class SettingsScreen extends StatelessWidget {
         );
       },
     );
+  }
+
+  /// Build a category row in the categories list
+  Widget _buildCategoryRow(
+    BuildContext context,
+    model.Category category,
+    CategoryProvider categoryProvider, {
+    bool isFirst = false,
+    bool isLast = false,
+  }) {
+    final theme = Theme.of(context);
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => _showEditCategoryDialog(context, category, categoryProvider),
+        borderRadius: BorderRadius.vertical(
+          top: isFirst ? const Radius.circular(12) : Radius.zero,
+          bottom: isLast ? const Radius.circular(12) : Radius.zero,
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Row(
+            children: [
+              // Category icon
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: category.color.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  category.icon,
+                  color: category.color,
+                  size: 22,
+                ),
+              ),
+              const SizedBox(width: 12),
+
+              // Category name and swipe direction
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      category.name,
+                      style: theme.textTheme.bodyLarge,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      _getDirectionDisplayName(category.swipeDirection),
+                      style: theme.textTheme.bodySmall,
+                    ),
+                  ],
+                ),
+              ),
+
+              // Delete button
+              IconButton(
+                icon: Icon(
+                  Icons.delete_outline,
+                  color: theme.colorScheme.error,
+                  size: 20,
+                ),
+                onPressed: () => _showDeleteCategoryDialog(
+                  context,
+                  category,
+                  categoryProvider,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Get display name for swipe direction
+  String _getDirectionDisplayName(model.SwipeDirection direction) {
+    switch (direction) {
+      case model.SwipeDirection.up:
+        return 'Swipe Up';
+      case model.SwipeDirection.down:
+        return 'Swipe Down';
+      case model.SwipeDirection.left:
+        return 'Swipe Left';
+      case model.SwipeDirection.right:
+        return 'Swipe Right';
+    }
+  }
+
+  /// Show add category dialog
+  Future<void> _showAddCategoryDialog(
+    BuildContext context,
+    CategoryProvider categoryProvider,
+  ) async {
+    final availableDirections = categoryProvider.getAvailableDirections();
+
+    if (availableDirections.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('All swipe directions are already assigned'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+
+    final newCategory = await AddCategoryDialog.showAdd(
+      context,
+      availableDirections,
+    );
+
+    if (newCategory != null) {
+      try {
+        await categoryProvider.addCategory(newCategory);
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('${newCategory.name} added'),
+              backgroundColor: newCategory.color,
+              duration: const Duration(seconds: 1),
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+          );
+        }
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error adding category: $e'),
+              backgroundColor: Theme.of(context).colorScheme.error,
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        }
+      }
+    }
+  }
+
+  /// Show edit category dialog
+  Future<void> _showEditCategoryDialog(
+    BuildContext context,
+    model.Category category,
+    CategoryProvider categoryProvider,
+  ) async {
+    final availableDirections = categoryProvider.getAvailableDirections(
+      excludeCategoryId: category.id,
+    );
+
+    final updatedCategory = await AddCategoryDialog.showEdit(
+      context,
+      category,
+      availableDirections,
+    );
+
+    if (updatedCategory != null) {
+      try {
+        await categoryProvider.updateCategory(updatedCategory);
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('${updatedCategory.name} updated'),
+              backgroundColor: updatedCategory.color,
+              duration: const Duration(seconds: 1),
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+          );
+        }
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error updating category: $e'),
+              backgroundColor: Theme.of(context).colorScheme.error,
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        }
+      }
+    }
+  }
+
+  /// Show delete category confirmation dialog
+  Future<void> _showDeleteCategoryDialog(
+    BuildContext context,
+    model.Category category,
+    CategoryProvider categoryProvider,
+  ) async {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: isDark ? const Color(0xFF1C1C1E) : Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(
+          'Delete Category?',
+          style: theme.textTheme.headlineSmall?.copyWith(
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        content: Text(
+          'Are you sure you want to delete "${category.name}"? This action cannot be undone.',
+          style: theme.textTheme.bodyMedium,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: TextButton.styleFrom(
+              foregroundColor: theme.colorScheme.error,
+            ),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      try {
+        await categoryProvider.deleteCategory(category.id);
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('${category.name} deleted'),
+              duration: const Duration(seconds: 1),
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+          );
+        }
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error deleting category: $e'),
+              backgroundColor: theme.colorScheme.error,
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        }
+      }
+    }
   }
 }

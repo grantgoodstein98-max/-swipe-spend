@@ -62,6 +62,22 @@ class CategoryProvider extends ChangeNotifier {
     }
   }
 
+  /// Update an existing category
+  Future<void> updateCategory(model.Category category) async {
+    try {
+      final index = _categories.indexWhere((c) => c.id == category.id);
+      if (index != -1) {
+        _categories[index] = category;
+        await _categoryService.saveCategories(_categories);
+        _updateSwipeMappings();
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint('Error updating category: $e');
+      rethrow;
+    }
+  }
+
   /// Delete a category
   Future<void> deleteCategory(String id) async {
     try {
@@ -73,6 +89,16 @@ class CategoryProvider extends ChangeNotifier {
       debugPrint('Error deleting category: $e');
       rethrow;
     }
+  }
+
+  /// Get available swipe directions (ones not currently mapped)
+  List<model.SwipeDirection> getAvailableDirections({String? excludeCategoryId}) {
+    final allDirections = model.SwipeDirection.values;
+    final usedDirections = _categories
+        .where((c) => c.id != excludeCategoryId)
+        .map((c) => c.swipeDirection)
+        .toSet();
+    return allDirections.where((d) => !usedDirections.contains(d)).toList();
   }
 
   /// Map a swipe direction to a category

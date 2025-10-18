@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:intl/intl.dart';
 import '../models/category.dart' as model;
 import '../models/transaction.dart';
 import '../providers/transaction_provider.dart';
@@ -177,6 +178,31 @@ class _ChartsScreenState extends State<ChartsScreen> with TickerProviderStateMix
                           startDate,
                           endDate,
                           allTransactions,
+                        ),
+
+                        const SizedBox(height: 32),
+
+                        // Monthly trends section header
+                        const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 16),
+                          child: Text(
+                            'MONTHLY TRENDS',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.grey,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ),
+
+                        const SizedBox(height: 16),
+
+                        // Monthly trends bar chart
+                        _buildMonthlyTrendsChart(
+                          allTransactions,
+                          categoryProvider.categories,
+                          themeProvider,
                         ),
 
                         const SizedBox(height: 32),
@@ -723,6 +749,346 @@ class _ChartsScreenState extends State<ChartsScreen> with TickerProviderStateMix
           ),
         ],
       ),
+    );
+  }
+
+  // Monthly trends chart methods
+  Widget _buildMonthlyTrendsChart(
+    List<Transaction> transactions,
+    List<model.Category> categories,
+    ThemeProvider themeProvider,
+  ) {
+    final monthlyData = _calculateMonthlySpending(transactions, categories);
+
+    if (monthlyData.isEmpty || !monthlyData.values.any((m) => m.isNotEmpty)) {
+      return Container(
+        height: 300,
+        margin: const EdgeInsets.symmetric(horizontal: 16),
+        padding: const EdgeInsets.all(32),
+        decoration: BoxDecoration(
+          color: Theme.of(context).brightness == Brightness.dark
+              ? const Color(0xFF1C1C1E)
+              : Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Theme.of(context).brightness == Brightness.dark
+              ? Border.all(color: const Color(0xFF38383A), width: 0.5)
+              : null,
+          boxShadow: Theme.of(context).brightness == Brightness.dark
+              ? []
+              : [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 3,
+                    offset: const Offset(0, 1),
+                  ),
+                ],
+        ),
+        child: Center(
+          child: Text(
+            'No spending data available for the last 6 months',
+            style: TextStyle(color: Colors.grey),
+            textAlign: TextAlign.center,
+          ),
+        ),
+      );
+    }
+
+    return Container(
+      height: 400,
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Theme.of(context).brightness == Brightness.dark
+            ? const Color(0xFF1C1C1E)
+            : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Theme.of(context).brightness == Brightness.dark
+            ? Border.all(color: const Color(0xFF38383A), width: 0.5)
+            : null,
+        boxShadow: Theme.of(context).brightness == Brightness.dark
+            ? []
+            : [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 3,
+                  offset: const Offset(0, 1),
+                ),
+              ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Last 6 Months',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            'Spending by category (stacked)',
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.grey,
+            ),
+          ),
+          const SizedBox(height: 20),
+          Expanded(
+            child: BarChart(
+              BarChartData(
+                alignment: BarChartAlignment.spaceAround,
+                maxY: _getMaxMonthlySpending(monthlyData),
+                barTouchData: BarTouchData(
+                  enabled: true,
+                  touchTooltipData: BarTouchTooltipData(
+                    getTooltipColor: (group) => Colors.black87,
+                    getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                      final monthNames = monthlyData.keys.toList();
+                      final month = monthNames[group.x.toInt()];
+                      return BarTooltipItem(
+                        '$month\n\$${rod.toY.toStringAsFixed(0)}',
+                        const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                titlesData: FlTitlesData(
+                  show: true,
+                  bottomTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      getTitlesWidget: (value, meta) {
+                        final monthNames = monthlyData.keys.toList();
+                        if (value.toInt() >= monthNames.length) return const Text('');
+
+                        final month = monthNames[value.toInt()];
+                        return Padding(
+                          padding: const EdgeInsets.only(top: 8),
+                          child: Text(
+                            month,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  leftTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      reservedSize: 50,
+                      getTitlesWidget: (value, meta) {
+                        if (value == 0) return const Text('');
+                        return Text(
+                          '\$${(value / 1000).toStringAsFixed(0)}k',
+                          style: const TextStyle(
+                            fontSize: 11,
+                            color: Colors.grey,
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  rightTitles: const AxisTitles(
+                    sideTitles: SideTitles(showTitles: false),
+                  ),
+                  topTitles: const AxisTitles(
+                    sideTitles: SideTitles(showTitles: false),
+                  ),
+                ),
+                gridData: FlGridData(
+                  show: true,
+                  drawVerticalLine: false,
+                  horizontalInterval: 500,
+                  getDrawingHorizontalLine: (value) {
+                    return FlLine(
+                      color: Colors.grey.withOpacity(0.2),
+                      strokeWidth: 1,
+                    );
+                  },
+                ),
+                borderData: FlBorderData(show: false),
+                barGroups: _createBarGroups(monthlyData, categories, themeProvider),
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 16),
+          _buildChartLegend(monthlyData, categories, themeProvider),
+        ],
+      ),
+    );
+  }
+
+  Map<String, Map<String, double>> _calculateMonthlySpending(
+    List<Transaction> transactions,
+    List<model.Category> categories,
+  ) {
+    final Map<String, Map<String, double>> monthlyData = {};
+    final now = DateTime.now();
+
+    // Get last 6 months
+    for (int i = 5; i >= 0; i--) {
+      final monthDate = DateTime(now.year, now.month - i, 1);
+      final monthKey = DateFormat('MMM').format(monthDate);
+      monthlyData[monthKey] = {};
+    }
+
+    // Group transactions by month and category
+    for (var transaction in transactions) {
+      if (!transaction.isCategorized || transaction.category == null) continue;
+
+      final monthKey = DateFormat('MMM').format(transaction.date);
+
+      // Only include if in last 6 months
+      if (!monthlyData.containsKey(monthKey)) continue;
+
+      final categoryId = transaction.category!;
+      monthlyData[monthKey]![categoryId] =
+          (monthlyData[monthKey]![categoryId] ?? 0) + transaction.amount;
+    }
+
+    return monthlyData;
+  }
+
+  List<BarChartGroupData> _createBarGroups(
+    Map<String, Map<String, double>> monthlyData,
+    List<model.Category> categories,
+    ThemeProvider themeProvider,
+  ) {
+    final List<BarChartGroupData> groups = [];
+
+    // Get top 5 categories by total spending
+    final categoryTotals = <String, double>{};
+    for (var monthData in monthlyData.values) {
+      for (var entry in monthData.entries) {
+        categoryTotals[entry.key] = (categoryTotals[entry.key] ?? 0) + entry.value;
+      }
+    }
+
+    final topCategories = categoryTotals.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+
+    final topCategoryIds = topCategories
+        .take(5)
+        .map((e) => e.key)
+        .toList();
+
+    // Create stacked bar for each month
+    int monthIndex = 0;
+    for (var entry in monthlyData.entries) {
+      final monthData = entry.value;
+
+      groups.add(
+        BarChartGroupData(
+          x: monthIndex,
+          barRods: [
+            BarChartRodData(
+              toY: monthData.values.fold(0.0, (sum, val) => sum + val),
+              rodStackItems: _createStackItems(monthData, categories, topCategoryIds, themeProvider),
+              borderRadius: BorderRadius.circular(4),
+              width: 30,
+            ),
+          ],
+        ),
+      );
+
+      monthIndex++;
+    }
+
+    return groups;
+  }
+
+  List<BarChartRodStackItem> _createStackItems(
+    Map<String, double> monthData,
+    List<model.Category> categories,
+    List<String> topCategoryIds,
+    ThemeProvider themeProvider,
+  ) {
+    final items = <BarChartRodStackItem>[];
+    double currentY = 0;
+
+    for (var categoryId in topCategoryIds) {
+      final amount = monthData[categoryId] ?? 0;
+      if (amount == 0) continue;
+
+      final category = categories.firstWhere((c) => c.id == categoryId);
+      final color = ColorHelper.adjustColorForTheme(category.color, themeProvider.isDarkMode);
+
+      items.add(
+        BarChartRodStackItem(
+          currentY,
+          currentY + amount,
+          color,
+        ),
+      );
+
+      currentY += amount;
+    }
+
+    return items;
+  }
+
+  double _getMaxMonthlySpending(Map<String, Map<String, double>> monthlyData) {
+    double max = 0;
+
+    for (var monthData in monthlyData.values) {
+      final monthTotal = monthData.values.fold<double>(0, (sum, val) => sum + val);
+      if (monthTotal > max) max = monthTotal;
+    }
+
+    // Round up to nearest 500
+    return ((max / 500).ceil() * 500).toDouble();
+  }
+
+  Widget _buildChartLegend(
+    Map<String, Map<String, double>> monthlyData,
+    List<model.Category> categories,
+    ThemeProvider themeProvider,
+  ) {
+    // Get top 5 categories
+    final categoryTotals = <String, double>{};
+    for (var monthData in monthlyData.values) {
+      for (var entry in monthData.entries) {
+        categoryTotals[entry.key] = (categoryTotals[entry.key] ?? 0) + entry.value;
+      }
+    }
+
+    final topCategories = categoryTotals.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+
+    return Wrap(
+      spacing: 12,
+      runSpacing: 8,
+      children: topCategories.take(5).map((entry) {
+        final category = categories.firstWhere((c) => c.id == entry.key);
+        final color = ColorHelper.adjustColorForTheme(category.color, themeProvider.isDarkMode);
+
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 12,
+              height: 12,
+              decoration: BoxDecoration(
+                color: color,
+                borderRadius: BorderRadius.circular(3),
+              ),
+            ),
+            const SizedBox(width: 6),
+            Text(
+              category.name,
+              style: const TextStyle(fontSize: 12),
+            ),
+          ],
+        );
+      }).toList(),
     );
   }
 }

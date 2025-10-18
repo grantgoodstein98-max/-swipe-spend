@@ -252,21 +252,15 @@ class _SwipeScreenState extends State<SwipeScreen> {
                     child: Stack(
                       alignment: Alignment.center,
                       children: [
-                        CardSwiper(
+                        uncategorizedTransactions.isEmpty
+                            ? _buildCompletionCard(context)
+                            : CardSwiper(
                           controller: _controller,
-                          cardsCount: uncategorizedTransactions.isEmpty
-                              ? 1
-                              : uncategorizedTransactions.length + 1,
-                          numberOfCardsDisplayed: uncategorizedTransactions.isEmpty ? 1 : 2,
+                          cardsCount: uncategorizedTransactions.length,
+                          numberOfCardsDisplayed: uncategorizedTransactions.length >= 2 ? 2 : 1,
                           backCardOffset: const Offset(0, -20),
                           padding: const EdgeInsets.all(24),
-                          isDisabled: uncategorizedTransactions.isEmpty,
                           onSwipe: (previousIndex, currentIndex, direction) {
-                            // Prevent swiping the completion card
-                            if (previousIndex >= uncategorizedTransactions.length) {
-                              return false;
-                            }
-
                             if (currentIndex != null) {
                               setState(() {
                                 _currentCardIndex = currentIndex;
@@ -283,11 +277,6 @@ class _SwipeScreenState extends State<SwipeScreen> {
                           cardBuilder: (context, index,
                               horizontalOffsetPercentage,
                               verticalOffsetPercentage) {
-                            // Last card is completion card
-                            if (index >= uncategorizedTransactions.length) {
-                              return _buildCompletionCard(context);
-                            }
-
                             final transaction = uncategorizedTransactions[index];
                             return TransactionCard(
                               transaction: transaction,
@@ -350,7 +339,7 @@ class _SwipeScreenState extends State<SwipeScreen> {
                                     : null,
                               ),
                               child: Text(
-                                '${_currentCardIndex + 1}/${uncategorizedTransactions.length}',
+                                '${uncategorizedTransactions.length}',
                                 style: theme.textTheme.labelMedium?.copyWith(
                                   fontWeight: FontWeight.w600,
                                   letterSpacing: 0.5,

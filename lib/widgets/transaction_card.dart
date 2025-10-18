@@ -76,35 +76,37 @@ class TransactionCard extends StatelessWidget {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    return Stack(
-      children: [
-        // Main card with Apple-style design
-        Container(
-          decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF1C1C1E) : Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: isDark
-                  ? const Color(0xFF38383A).withOpacity(0.5)
-                  : Colors.black.withOpacity(0.08),
-              width: isDark ? 0.5 : 1,
+    return SizedBox(
+      // FIXED SIZE - All cards will be exactly the same dimensions
+      width: double.infinity,
+      height: double.infinity,
+      child: Stack(
+        children: [
+          // Main card with Apple-style design
+          Container(
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF1C1C1E) : Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: isDark
+                    ? const Color(0xFF38383A).withOpacity(0.5)
+                    : Colors.black.withOpacity(0.08),
+                width: isDark ? 0.5 : 1,
+              ),
+              boxShadow: isDark
+                  ? null
+                  : [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.08),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
             ),
-            boxShadow: isDark
-                ? null
-                : [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.08),
-                      blurRadius: 12,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-          ),
-          padding: const EdgeInsets.all(16),
-          child: SingleChildScrollView(
-            physics: const NeverScrollableScrollPhysics(),
+            padding: const EdgeInsets.all(16),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
-              mainAxisSize: MainAxisSize.min,
+              mainAxisSize: MainAxisSize.max,
               children: [
                 // Merchant icon
                 Container(
@@ -126,7 +128,7 @@ class TransactionCard extends StatelessWidget {
                   transaction.merchantName ?? transaction.name,
                   style: theme.textTheme.headlineMedium?.copyWith(fontSize: 15),
                   textAlign: TextAlign.center,
-                  maxLines: 1,
+                  maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 6),
@@ -169,9 +171,8 @@ class TransactionCard extends StatelessWidget {
               ],
             ),
           ),
-        ),
 
-        // Right swipe icon
+          // Right swipe icon
         if (rightOpacity > 0 && rightCategory != null)
           Positioned.fill(
             child: Align(
@@ -413,7 +414,8 @@ class TransactionCard extends StatelessWidget {
               ),
             ),
           ),
-      ],
+        ],
+      ),
     );
   }
 }

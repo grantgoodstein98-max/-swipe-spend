@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../utils/available_icons.dart';
 
 /// Direction of swipe gesture
 enum SwipeDirection { up, down, left, right }
@@ -51,22 +52,7 @@ class Category {
 
   /// Get IconData from icon name
   IconData get icon {
-    switch (iconName) {
-      case 'restaurant':
-        return Icons.restaurant;
-      case 'directions_car':
-        return Icons.directions_car;
-      case 'shopping_bag':
-        return Icons.shopping_bag;
-      case 'movie':
-        return Icons.movie;
-      case 'receipt':
-        return Icons.receipt;
-      case 'category':
-        return Icons.category;
-      default:
-        return Icons.help_outline;
-    }
+    return AvailableIcons.getIcon(iconName);
   }
 
   @override
