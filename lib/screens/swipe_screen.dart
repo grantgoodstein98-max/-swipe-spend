@@ -239,10 +239,7 @@ class _SwipeScreenState extends State<SwipeScreen> {
               // Swipe area
               Expanded(
                 child: Padding(
-                  padding: EdgeInsets.only(
-                    bottom: 40,
-                    left: MediaQuery.of(context).size.width / 3,
-                  ),
+                  padding: const EdgeInsets.only(bottom: 40),
                   child: Center(
                     child: Container(
                       constraints: BoxConstraints(
