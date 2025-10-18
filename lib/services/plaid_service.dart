@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart';
+import 'package:flutter/foundation.dart' show debugPrint, kIsWeb;
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:plaid_flutter/plaid_flutter.dart';
@@ -57,39 +57,35 @@ class PlaidService {
     throw UnsupportedError('Plaid Link is not supported on web. Please use a mobile device.');
   }
 
-  /// Create a link token
-  /// NOTE: In production, this MUST be done on your backend server
+  /// Create a link token via backend server
   Future<String?> _createLinkToken() async {
     try {
-      // This is a demo - in production, call your backend API endpoint
-      // Example: POST https://your-backend.com/api/plaid/create_link_token
+      // Use deployed backend or localhost for development
+      final backendUrl = kIsWeb
+          ? 'https://backend-1gkar4rt2-grants-projects-45de1bc8.vercel.app'
+          : 'http://localhost:3000';
+
       final response = await http.post(
-        Uri.parse('https://sandbox.plaid.com/link/token/create'),
+        Uri.parse('$backendUrl/api/create-link-token'),
         headers: {
           'Content-Type': 'application/json',
         },
         body: jsonEncode({
-          'client_id': _clientId,
-          'secret': _secret,
-          'user': {
-            'client_user_id': 'user-${DateTime.now().millisecondsSinceEpoch}',
-          },
-          'client_name': 'Swipe Finance',
-          'products': ['transactions'],
-          'country_codes': ['US'],
-          'language': 'en',
+          'userId': 'user-${DateTime.now().millisecondsSinceEpoch}',
         }),
       );
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
+        debugPrint('✅ Link token created successfully via backend');
         return data['link_token'];
       } else {
-        debugPrint('Failed to create link token: ${response.body}');
+        debugPrint('❌ Failed to create link token: ${response.statusCode}');
+        debugPrint('   Response: ${response.body}');
         return null;
       }
     } catch (e) {
-      debugPrint('Error creating link token: $e');
+      debugPrint('❌ Error creating link token: $e');
       return null;
     }
   }

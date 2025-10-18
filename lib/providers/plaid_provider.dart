@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:plaid_flutter/plaid_flutter.dart';
 import '../services/plaid_service.dart';
@@ -20,6 +21,33 @@ class PlaidProvider extends ChangeNotifier {
   Future<void> connectBankAccount(BuildContext context) async {
     _setLoading(true);
     _clearError();
+
+    // Check if running on web
+    if (kIsWeb) {
+      _setLoading(false);
+      if (context.mounted) {
+        showDialog(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Web Platform Not Supported'),
+            content: const Text(
+              'Plaid Link requires a mobile platform (iOS or Android) or a backend server.\n\n'
+              'To test Plaid integration:\n'
+              '1. Build for mobile: flutter run -d android\n'
+              '2. Or set up a backend server to handle Plaid API calls\n\n'
+              'For now, you can use the "Choose File" option to import transactions.',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+        );
+      }
+      return;
+    }
 
     try {
       await _plaidService.initializePlaidLink(
