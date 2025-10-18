@@ -76,7 +76,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   children: [
                     // App Title
                     const Text(
-                      'SwipeSpend',
+                      'Swipe Finance',
                       style: TextStyle(
                         fontSize: 36,
                         fontWeight: FontWeight.bold,
