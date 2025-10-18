@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'swipe_screen.dart';
 import 'charts_screen.dart';
+import 'budget_screen.dart';
 import 'ai_assistant_screen.dart';
 import 'settings_screen.dart';
 
@@ -10,6 +11,14 @@ class HomeScreen extends StatefulWidget {
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
+
+  /// Find the nearest HomeScreen and switch to a specific tab
+  static void switchTab(BuildContext context, int index) {
+    final state = context.findAncestorStateOfType<_HomeScreenState>();
+    state?.setState(() {
+      state._currentIndex = index;
+    });
+  }
 }
 
 class _HomeScreenState extends State<HomeScreen> {
@@ -19,6 +28,7 @@ class _HomeScreenState extends State<HomeScreen> {
   final List<Widget> _screens = const [
     SwipeScreen(),
     ChartsScreen(),
+    BudgetScreen(),
     AiAssistantScreen(),
   ];
 
@@ -28,7 +38,7 @@ class _HomeScreenState extends State<HomeScreen> {
     final isDark = theme.brightness == Brightness.dark;
 
     return DefaultTabController(
-      length: 3,
+      length: 4,
       initialIndex: _currentIndex,
       child: Scaffold(
         body: _screens[_currentIndex],
@@ -61,6 +71,11 @@ class _HomeScreenState extends State<HomeScreen> {
                 icon: Icon(Icons.pie_chart_outline_rounded),
                 activeIcon: Icon(Icons.pie_chart_rounded),
                 label: 'Charts',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.account_balance_wallet_outlined),
+                activeIcon: Icon(Icons.account_balance_wallet_rounded),
+                label: 'Budget',
               ),
               BottomNavigationBarItem(
                 icon: Icon(Icons.psychology_outlined),

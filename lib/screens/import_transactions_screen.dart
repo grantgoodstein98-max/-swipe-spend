@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:provider/provider.dart';
@@ -32,6 +31,7 @@ class _ImportTransactionsScreenState extends State<ImportTransactionsScreen> {
         type: FileType.custom,
         allowedExtensions: ['csv', 'xlsx', 'xls'],
         allowMultiple: false,
+        withData: true, // Important: Load file data into bytes
       );
 
       if (result == null || result.files.isEmpty) {
@@ -41,16 +41,22 @@ class _ImportTransactionsScreenState extends State<ImportTransactionsScreen> {
         return;
       }
 
-      final file = File(result.files.single.path!);
-      final fileName = result.files.single.name;
-      final extension = fileName.split('.').last.toLowerCase();
+      final platformFile = result.files.single;
+      final fileName = platformFile.name;
+      final extension = platformFile.extension?.toLowerCase() ?? '';
+
+      debugPrint('📂 Selected file: $fileName');
+      debugPrint('📂 Extension: $extension');
+      debugPrint('📂 File size: ${platformFile.size} bytes');
 
       List<Transaction> transactions;
 
       if (extension == 'csv') {
-        transactions = await ImportService.parseCSV(file);
+        debugPrint('📄 Parsing as CSV...');
+        transactions = await ImportService.parseCSV(platformFile);
       } else if (extension == 'xlsx' || extension == 'xls') {
-        transactions = await ImportService.parseExcel(file);
+        debugPrint('📊 Parsing as Excel...');
+        transactions = await ImportService.parseExcel(platformFile);
       } else {
         throw Exception('Unsupported file type: $extension');
       }
@@ -59,12 +65,15 @@ class _ImportTransactionsScreenState extends State<ImportTransactionsScreen> {
         throw Exception('No valid transactions found in file');
       }
 
+      debugPrint('✅ Successfully parsed ${transactions.length} transactions');
+
       setState(() {
         _previewTransactions = transactions;
         _fileName = fileName;
         _isLoading = false;
       });
     } catch (e) {
+      debugPrint('❌ Error in _pickFile: $e');
       setState(() {
         _errorMessage = e.toString();
         _isLoading = false;
