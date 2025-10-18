@@ -47,3 +47,10 @@ lib/config/api_config.dart
 
 # Claude Code settings
 .claude/settings.local.json
+.vercel
+
+# Firebase
+.firebase/
+
+# Temporary files
+nul
