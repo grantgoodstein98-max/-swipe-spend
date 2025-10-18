@@ -112,11 +112,9 @@ class SettingsScreen extends StatelessWidget {
                         ],
                       ),
                     ),
-                    // Only show Plaid on mobile (not supported on web)
-                    if (!kIsWeb) ...[
-                      _buildDivider(context),
-                      // Connect Bank Account Button
-                      Consumer<PlaidProvider>(
+                    _buildDivider(context),
+                    // Connect Bank Account Button
+                    Consumer<PlaidProvider>(
                         builder: (context, plaidProvider, child) {
                           return Material(
                             color: Colors.transparent,
@@ -183,8 +181,7 @@ class SettingsScreen extends StatelessWidget {
                           );
                         },
                       ),
-                      _buildDivider(context),
-                    ],
+                    _buildDivider(context),
                     // Sign Out / Exit Guest Mode Button
                     Material(
                       color: Colors.transparent,

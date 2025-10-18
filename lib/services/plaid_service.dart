@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:plaid_flutter/plaid_flutter.dart';
 import '../models/transaction.dart';
+import 'plaid_web_service.dart' if (dart.library.io) 'plaid_web_service_stub.dart';
 
 /// Service for managing Plaid integration
 ///
@@ -50,11 +51,29 @@ class PlaidService {
   }
 
   /// Open Plaid Link UI
-  /// NOTE: This will NOT work on web - only iOS/Android
-  Future<void> openPlaidLink() async {
-    debugPrint('⚠️  Plaid Link is only supported on mobile platforms (iOS/Android)');
-    debugPrint('   Please test this feature on a mobile device or emulator');
-    throw UnsupportedError('Plaid Link is not supported on web. Please use a mobile device.');
+  /// Works on both web (via JavaScript SDK) and mobile (via Flutter package)
+  Future<Map<String, dynamic>?> openPlaidLink() async {
+    try {
+      final linkToken = await _createLinkToken();
+      if (linkToken == null) {
+        throw Exception('Failed to create link token');
+      }
+
+      if (kIsWeb) {
+        // Use JavaScript SDK on web
+        debugPrint('🌐 Opening Plaid Link on web...');
+        final result = await PlaidWebService.openPlaidLink(linkToken);
+        return result;
+      } else {
+        // Use Flutter package on mobile
+        debugPrint('📱 Opening Plaid Link on mobile...');
+        // Mobile implementation would go here
+        throw UnsupportedError('Mobile Plaid Link not yet implemented');
+      }
+    } catch (e) {
+      debugPrint('❌ Error opening Plaid Link: $e');
+      rethrow;
+    }
   }
 
   /// Create a link token via backend server

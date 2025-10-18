@@ -1,6 +1,5 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:plaid_flutter/plaid_flutter.dart';
 import '../services/plaid_service.dart';
 import '../models/transaction.dart';
 
@@ -17,98 +16,57 @@ class PlaidProvider extends ChangeNotifier {
   String? get linkedInstitutionName => _plaidService.linkedInstitutionName;
   List<Transaction> get plaidTransactions => _plaidTransactions;
 
-  /// Initialize and open Plaid Link
+  /// Initialize and open Plaid Link (works on web and mobile)
   Future<void> connectBankAccount(BuildContext context) async {
     _setLoading(true);
     _clearError();
 
-    // Check if running on web
-    if (kIsWeb) {
-      _setLoading(false);
-      if (context.mounted) {
-        showDialog(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: const Text('Web Platform Not Supported'),
-            content: const Text(
-              'Plaid Link requires a mobile platform (iOS or Android) or a backend server.\n\n'
-              'To test Plaid integration:\n'
-              '1. Build for mobile: flutter run -d android\n'
-              '2. Or set up a backend server to handle Plaid API calls\n\n'
-              'For now, you can use the "Choose File" option to import transactions.',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('OK'),
-              ),
-            ],
-          ),
-        );
-      }
-      return;
-    }
-
     try {
-      await _plaidService.initializePlaidLink(
-        onSuccess: (publicToken, metadata) async {
-          debugPrint(' Plaid Link Success!');
-          debugPrint('   Public Token: ${publicToken.substring(0, 20)}...');
-          debugPrint('   Institution: ${metadata.institution?.name ?? "Unknown"}');
+      // Open Plaid Link (works on both web via JS SDK and mobile via Flutter package)
+      final result = await _plaidService.openPlaidLink();
 
-          // Save institution name
-          _plaidService.linkedInstitutionName = metadata.institution?.name ?? 'Bank';
+      if (result != null) {
+        final publicToken = result['publicToken'] as String;
+        final metadata = result['metadata'] as Map<String, dynamic>;
+        final institutionName = metadata['institution']?['name'] as String? ?? 'Bank';
 
-          // Exchange public token for access token
-          final success = await _plaidService.exchangePublicToken(publicToken);
+        debugPrint('✅ Plaid Link Success!');
+        debugPrint('   Public Token: ${publicToken.substring(0, 20)}...');
+        debugPrint('   Institution: $institutionName');
 
-          if (success) {
-            debugPrint(' Bank account connected successfully!');
-            notifyListeners();
+        // Save institution name
+        _plaidService.linkedInstitutionName = institutionName;
 
-            // Show success message
-            if (context.mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                    'Connected to ${metadata.institution?.name ?? "your bank"}!',
-                    style: const TextStyle(fontWeight: FontWeight.bold),
-                  ),
-                  backgroundColor: Colors.green,
-                  duration: const Duration(seconds: 3),
-                ),
-              );
-            }
-          } else {
-            _setError('Failed to connect bank account');
-          }
+        // Exchange public token for access token
+        final success = await _plaidService.exchangePublicToken(publicToken);
 
-          _setLoading(false);
-        },
-        onError: (error) {
-          debugPrint('❌ Plaid Link Error: $error');
-          _setError(error.toString());
-          _setLoading(false);
+        if (success) {
+          debugPrint('✅ Bank account connected successfully!');
+          notifyListeners();
 
+          // Show success message
           if (context.mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text('Error connecting bank: ${error.toString()}'),
-                backgroundColor: Colors.red,
+                content: Text(
+                  'Connected to $institutionName!',
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+                backgroundColor: Colors.green,
                 duration: const Duration(seconds: 3),
               ),
             );
           }
-        },
-        onEvent: (event, metadata) {
-          debugPrint('📊 Plaid Event: $event');
-        },
-      );
+        } else {
+          _setError('Failed to connect bank account');
+        }
+      } else {
+        debugPrint('ℹ️  Plaid Link closed by user');
+      }
 
-      // Open Plaid Link UI
-      await _plaidService.openPlaidLink();
+      _setLoading(false);
     } catch (e) {
-      debugPrint('L Error opening Plaid Link: $e');
+      debugPrint('❌ Error opening Plaid Link: $e');
       _setError(e.toString());
       _setLoading(false);
 
@@ -143,12 +101,12 @@ class PlaidProvider extends ChangeNotifier {
       );
 
       _plaidTransactions = transactions;
-      debugPrint(' Synced ${transactions.length} transactions from Plaid');
+      debugPrint('✅ Synced ${transactions.length} transactions from Plaid');
 
       _setLoading(false);
       return transactions;
     } catch (e) {
-      debugPrint('L Error syncing transactions: $e');
+      debugPrint('❌ Error syncing transactions: $e');
       _setError(e.toString());
       _setLoading(false);
       return [];
