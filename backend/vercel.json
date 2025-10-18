@@ -11,9 +11,5 @@
       "src": "/api/(.*)",
       "dest": "/api/$1"
     }
-  ],
-  "env": {
-    "PLAID_CLIENT_ID": "68f2cbfc7c634d00204cb232",
-    "PLAID_SECRET": "d1260af14dc3d7df25c645f7739a67"
-  }
+  ]
 }
