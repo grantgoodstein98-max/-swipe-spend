@@ -27,7 +27,7 @@ jobs:
         run: flutter pub get
 
       - name: Build web
-        run: flutter build web --release --base-href /-swipe-spend/
+        run: flutter build web --release --base-href=/-swipe-spend/
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
