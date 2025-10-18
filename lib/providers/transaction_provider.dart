@@ -8,6 +8,7 @@ import '../services/plaid_service.dart';
 class TransactionProvider extends ChangeNotifier {
   final PlaidService _plaidService = PlaidService();
   List<Transaction> _transactions = [];
+  bool _isUsingDummyData = false;
 
   TransactionProvider() {
     _loadTransactionsFromStorage();
@@ -29,6 +30,12 @@ class TransactionProvider extends ChangeNotifier {
     try {
       final prefs = await SharedPreferences.getInstance();
       final transactionsString = prefs.getString('transactions');
+
+      // Don't load from storage if using dummy data (check after async operations)
+      if (_isUsingDummyData) {
+        debugPrint('⏭️ Skipping storage load (using dummy data)');
+        return;
+      }
 
       if (transactionsString != null && transactionsString.isNotEmpty) {
         final List<dynamic> decoded = jsonDecode(transactionsString);
@@ -184,6 +191,187 @@ class TransactionProvider extends ChangeNotifier {
   /// Clear all transactions (for testing)
   void clearTransactions() {
     _transactions.clear();
+    _isUsingDummyData = false;
+    notifyListeners();
+  }
+
+  /// Load dummy data for guest mode (does not persist to storage)
+  void loadDummyData() {
+    _isUsingDummyData = true;
+    final now = DateTime.now();
+
+    _transactions = [
+      // Recent transactions (last 7 days)
+      Transaction(
+        id: 'guest_1',
+        plaidId: 'plaid_guest_1',
+        name: 'Starbucks',
+        merchantName: 'Starbucks Coffee',
+        amount: 5.67,
+        date: now.subtract(const Duration(days: 1)),
+        isCategorized: false,
+      ),
+      Transaction(
+        id: 'guest_2',
+        plaidId: 'plaid_guest_2',
+        name: 'Uber',
+        merchantName: 'Uber Technologies',
+        amount: 23.45,
+        date: now.subtract(const Duration(days: 2)),
+        isCategorized: false,
+      ),
+      Transaction(
+        id: 'guest_3',
+        plaidId: 'plaid_guest_3',
+        name: 'Whole Foods',
+        merchantName: 'Whole Foods Market',
+        amount: 87.32,
+        date: now.subtract(const Duration(days: 3)),
+        isCategorized: false,
+      ),
+      Transaction(
+        id: 'guest_4',
+        plaidId: 'plaid_guest_4',
+        name: 'Amazon',
+        merchantName: 'Amazon.com',
+        amount: 42.99,
+        date: now.subtract(const Duration(days: 4)),
+        isCategorized: false,
+      ),
+      Transaction(
+        id: 'guest_5',
+        plaidId: 'plaid_guest_5',
+        name: 'Netflix',
+        merchantName: 'Netflix Inc',
+        amount: 15.99,
+        date: now.subtract(const Duration(days: 5)),
+        isCategorized: false,
+      ),
+      Transaction(
+        id: 'guest_6',
+        plaidId: 'plaid_guest_6',
+        name: 'Shell Gas Station',
+        merchantName: 'Shell',
+        amount: 45.00,
+        date: now.subtract(const Duration(days: 6)),
+        isCategorized: false,
+      ),
+      Transaction(
+        id: 'guest_7',
+        plaidId: 'plaid_guest_7',
+        name: 'Chipotle',
+        merchantName: 'Chipotle Mexican Grill',
+        amount: 12.50,
+        date: now.subtract(const Duration(days: 7)),
+        isCategorized: false,
+      ),
+      // Mid-range transactions (8-20 days ago)
+      Transaction(
+        id: 'guest_8',
+        plaidId: 'plaid_guest_8',
+        name: 'Target',
+        merchantName: 'Target Corporation',
+        amount: 156.78,
+        date: now.subtract(const Duration(days: 10)),
+        isCategorized: false,
+      ),
+      Transaction(
+        id: 'guest_9',
+        plaidId: 'plaid_guest_9',
+        name: 'Spotify',
+        merchantName: 'Spotify',
+        amount: 10.99,
+        date: now.subtract(const Duration(days: 12)),
+        isCategorized: false,
+      ),
+      Transaction(
+        id: 'guest_10',
+        plaidId: 'plaid_guest_10',
+        name: 'McDonald\'s',
+        merchantName: 'McDonald\'s',
+        amount: 8.75,
+        date: now.subtract(const Duration(days: 14)),
+        isCategorized: false,
+      ),
+      Transaction(
+        id: 'guest_11',
+        plaidId: 'plaid_guest_11',
+        name: 'Costco',
+        merchantName: 'Costco Wholesale',
+        amount: 234.56,
+        date: now.subtract(const Duration(days: 15)),
+        isCategorized: false,
+      ),
+      Transaction(
+        id: 'guest_12',
+        plaidId: 'plaid_guest_12',
+        name: 'Planet Fitness',
+        merchantName: 'Planet Fitness',
+        amount: 10.00,
+        date: now.subtract(const Duration(days: 18)),
+        isCategorized: false,
+      ),
+      // Older transactions (21-30 days ago)
+      Transaction(
+        id: 'guest_13',
+        plaidId: 'plaid_guest_13',
+        name: 'AT&T',
+        merchantName: 'AT&T Inc',
+        amount: 85.00,
+        date: now.subtract(const Duration(days: 22)),
+        isCategorized: false,
+      ),
+      Transaction(
+        id: 'guest_14',
+        plaidId: 'plaid_guest_14',
+        name: 'CVS Pharmacy',
+        merchantName: 'CVS',
+        amount: 34.21,
+        date: now.subtract(const Duration(days: 24)),
+        isCategorized: false,
+      ),
+      Transaction(
+        id: 'guest_15',
+        plaidId: 'plaid_guest_15',
+        name: 'Apple Store',
+        merchantName: 'Apple Inc',
+        amount: 199.99,
+        date: now.subtract(const Duration(days: 26)),
+        isCategorized: false,
+      ),
+      Transaction(
+        id: 'guest_16',
+        plaidId: 'plaid_guest_16',
+        name: 'Panera Bread',
+        merchantName: 'Panera Bread',
+        amount: 14.32,
+        date: now.subtract(const Duration(days: 28)),
+        isCategorized: false,
+      ),
+      Transaction(
+        id: 'guest_17',
+        plaidId: 'plaid_guest_17',
+        name: 'Best Buy',
+        merchantName: 'Best Buy',
+        amount: 127.45,
+        date: now.subtract(const Duration(days: 29)),
+        isCategorized: false,
+      ),
+      Transaction(
+        id: 'guest_18',
+        plaidId: 'plaid_guest_18',
+        name: 'Kroger',
+        merchantName: 'Kroger',
+        amount: 62.18,
+        date: now.subtract(const Duration(days: 30)),
+        isCategorized: false,
+      ),
+    ];
+
+    // Sort by date (newest first)
+    _transactions.sort((a, b) => b.date.compareTo(a.date));
+
+    debugPrint('✅ Loaded ${_transactions.length} dummy transactions for guest mode');
     notifyListeners();
   }
 

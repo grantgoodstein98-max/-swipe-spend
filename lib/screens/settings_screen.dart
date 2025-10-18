@@ -6,6 +6,7 @@ import '../providers/category_provider.dart';
 import '../providers/theme_provider.dart';
 import '../providers/guest_mode_provider.dart';
 import '../providers/plaid_provider.dart';
+import '../providers/transaction_provider.dart';
 import '../widgets/add_category_dialog.dart';
 import 'import_transactions_screen.dart';
 import '../services/auth_service.dart';
@@ -1122,7 +1123,10 @@ class SettingsScreen extends StatelessWidget {
     if (confirmed == true) {
       try {
         if (isGuest) {
+          // Exit guest mode and clear dummy data
           guestModeProvider.exitGuestMode();
+          Provider.of<TransactionProvider>(context, listen: false)
+              .clearTransactions();
         } else {
           await AuthService().signOut();
         }

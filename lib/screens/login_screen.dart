@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
 import '../providers/guest_mode_provider.dart';
+import '../providers/transaction_provider.dart';
 import 'signup_screen.dart';
 import '../screens/home_screen.dart';
 
@@ -245,8 +246,12 @@ class _LoginScreenState extends State<LoginScreen> {
                       height: 50,
                       child: OutlinedButton.icon(
                         onPressed: () {
+                          // Enable guest mode
                           Provider.of<GuestModeProvider>(context, listen: false)
                               .enableGuestMode();
+                          // Load dummy transaction data
+                          Provider.of<TransactionProvider>(context, listen: false)
+                              .loadDummyData();
                         },
                         icon: const Icon(Icons.person_outline),
                         label: const Text(
