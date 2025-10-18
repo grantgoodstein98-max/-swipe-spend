@@ -35,25 +35,15 @@ class TransactionProvider extends ChangeNotifier {
         _transactions = decoded.map((json) => Transaction.fromJson(json)).toList();
         debugPrint('✅ Loaded ${_transactions.length} transactions from storage');
       } else {
-        debugPrint('ℹ️ No saved transactions found, loading mock data');
-        _loadMockTransactions();
+        debugPrint('ℹ️ No saved transactions found');
+        _transactions = [];
       }
 
       notifyListeners();
     } catch (e) {
       debugPrint('❌ Error loading transactions from storage: $e');
-      _loadMockTransactions();
-    }
-  }
-
-  /// Load mock transactions for testing
-  void _loadMockTransactions() {
-    try {
-      _transactions = _plaidService.generateMockTransactions(count: 15);
-      debugPrint('ℹ️ Loaded ${_transactions.length} mock transactions');
+      _transactions = [];
       notifyListeners();
-    } catch (e) {
-      debugPrint('Error loading mock transactions: $e');
     }
   }
 
@@ -95,6 +85,23 @@ class TransactionProvider extends ChangeNotifier {
       }
     } catch (e) {
       debugPrint('Error categorizing transaction: $e');
+      rethrow;
+    }
+  }
+
+  /// Recategorize a transaction (move from one category to another)
+  Future<void> recategorizeTransaction(String transactionId, String newCategoryId) async {
+    try {
+      final index = _transactions.indexWhere((t) => t.id == transactionId);
+      if (index != -1) {
+        _transactions[index].category = newCategoryId;
+        _transactions[index].isCategorized = true;
+        notifyListeners();
+        await _saveTransactions();
+        debugPrint('✅ Recategorized transaction to category: $newCategoryId');
+      }
+    } catch (e) {
+      debugPrint('Error recategorizing transaction: $e');
       rethrow;
     }
   }
@@ -149,8 +156,7 @@ class TransactionProvider extends ChangeNotifier {
       notifyListeners();
     } catch (e) {
       debugPrint('Error loading transactions from Plaid: $e');
-      // Fall back to mock data on error
-      _loadMockTransactions();
+      // Don't load mock data - keep existing transactions or empty list
     }
   }
 
