@@ -163,7 +163,10 @@ class TransactionProvider extends ChangeNotifier {
       final now = DateTime.now();
       final thirtyDaysAgo = now.subtract(const Duration(days: 30));
       final fetchedTransactions =
-          await _plaidService.fetchTransactions(thirtyDaysAgo, now);
+          await _plaidService.fetchTransactions(
+            startDate: thirtyDaysAgo,
+            endDate: now,
+          );
 
       _transactions = fetchedTransactions;
       notifyListeners();

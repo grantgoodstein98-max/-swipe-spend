@@ -26,10 +26,10 @@ class PlaidProvider extends ChangeNotifier {
         onSuccess: (publicToken, metadata) async {
           debugPrint(' Plaid Link Success!');
           debugPrint('   Public Token: ${publicToken.substring(0, 20)}...');
-          debugPrint('   Institution: ${metadata.institution.name}');
+          debugPrint('   Institution: ${metadata.institution?.name ?? "Unknown"}');
 
           // Save institution name
-          _plaidService.linkedInstitutionName = metadata.institution.name;
+          _plaidService.linkedInstitutionName = metadata.institution?.name ?? 'Bank';
 
           // Exchange public token for access token
           final success = await _plaidService.exchangePublicToken(publicToken);
@@ -43,7 +43,7 @@ class PlaidProvider extends ChangeNotifier {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Text(
-                    'Connected to ${metadata.institution.name}!',
+                    'Connected to ${metadata.institution?.name ?? "your bank"}!',
                     style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
                   backgroundColor: Colors.green,
@@ -57,15 +57,15 @@ class PlaidProvider extends ChangeNotifier {
 
           _setLoading(false);
         },
-        onError: (error, metadata) {
-          debugPrint('L Plaid Link Error: ${error.errorMessage}');
-          _setError(error.errorMessage);
+        onError: (error) {
+          debugPrint('❌ Plaid Link Error: $error');
+          _setError(error.toString());
           _setLoading(false);
 
           if (context.mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text('Error: ${error.errorMessage}'),
+                content: Text('Error connecting bank: ${error.toString()}'),
                 backgroundColor: Colors.red,
                 duration: const Duration(seconds: 3),
               ),
@@ -73,7 +73,7 @@ class PlaidProvider extends ChangeNotifier {
           }
         },
         onEvent: (event, metadata) {
-          debugPrint('=� Plaid Event: ${event.eventName}');
+          debugPrint('📊 Plaid Event: $event');
         },
       );
 

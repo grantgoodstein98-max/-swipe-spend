@@ -27,7 +27,7 @@ class PlaidService {
   /// Initialize Plaid Link
   Future<void> initializePlaidLink({
     required Function(String publicToken, LinkSuccessMetadata metadata) onSuccess,
-    required Function(LinkError error, LinkErrorMetadata? metadata) onError,
+    required Function(LinkError error) onError,
     Function(LinkEvent event, LinkEventMetadata metadata)? onEvent,
   }) async {
     try {
@@ -38,20 +38,11 @@ class PlaidService {
         throw Exception('Failed to create link token');
       }
 
-      // Create Plaid Link configuration
-      final configuration = LinkTokenConfiguration(
-        token: linkToken,
-      );
-
-      // Initialize Plaid Link
-      _plaidLink = PlaidLink(
-        configuration: configuration,
-        onSuccess: onSuccess,
-        onError: onError,
-        onEvent: onEvent,
-      );
+      // Initialize Plaid Link (for mobile only - web not supported)
+      _plaidLink = PlaidLink();
 
       debugPrint('✅ Plaid Link initialized successfully');
+      debugPrint('⚠️  Note: Plaid Link only works on iOS/Android, not web');
     } catch (e) {
       debugPrint('❌ Error initializing Plaid Link: $e');
       rethrow;
@@ -59,12 +50,11 @@ class PlaidService {
   }
 
   /// Open Plaid Link UI
+  /// NOTE: This will NOT work on web - only iOS/Android
   Future<void> openPlaidLink() async {
-    if (_plaidLink == null) {
-      throw Exception('Plaid Link not initialized. Call initializePlaidLink first.');
-    }
-
-    await _plaidLink!.open();
+    debugPrint('⚠️  Plaid Link is only supported on mobile platforms (iOS/Android)');
+    debugPrint('   Please test this feature on a mobile device or emulator');
+    throw UnsupportedError('Plaid Link is not supported on web. Please use a mobile device.');
   }
 
   /// Create a link token
