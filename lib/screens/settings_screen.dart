@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:provider/provider.dart';
 import '../models/category.dart' as model;
 import '../providers/category_provider.dart';
@@ -111,76 +112,79 @@ class SettingsScreen extends StatelessWidget {
                         ],
                       ),
                     ),
-                    _buildDivider(context),
-                    // Connect Bank Account Button
-                    Consumer<PlaidProvider>(
-                      builder: (context, plaidProvider, child) {
-                        return Material(
-                          color: Colors.transparent,
-                          child: InkWell(
-                            onTap: plaidProvider.isLinked
-                                ? () => _showDisconnectBankDialog(context, plaidProvider)
-                                : () => plaidProvider.connectBankAccount(context),
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 12,
-                              ),
-                              child: Row(
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.all(8),
-                                    decoration: BoxDecoration(
-                                      color: plaidProvider.isLinked
-                                          ? Colors.green.withOpacity(0.1)
-                                          : theme.colorScheme.primary.withOpacity(0.1),
-                                      borderRadius: BorderRadius.circular(8),
+                    // Only show Plaid on mobile (not supported on web)
+                    if (!kIsWeb) ...[
+                      _buildDivider(context),
+                      // Connect Bank Account Button
+                      Consumer<PlaidProvider>(
+                        builder: (context, plaidProvider, child) {
+                          return Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              onTap: plaidProvider.isLinked
+                                  ? () => _showDisconnectBankDialog(context, plaidProvider)
+                                  : () => plaidProvider.connectBankAccount(context),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 12,
+                                ),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.all(8),
+                                      decoration: BoxDecoration(
+                                        color: plaidProvider.isLinked
+                                            ? Colors.green.withOpacity(0.1)
+                                            : theme.colorScheme.primary.withOpacity(0.1),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Icon(
+                                        plaidProvider.isLinked
+                                            ? Icons.account_balance
+                                            : Icons.add_link,
+                                        color: plaidProvider.isLinked
+                                            ? Colors.green
+                                            : theme.colorScheme.primary,
+                                        size: 22,
+                                      ),
                                     ),
-                                    child: Icon(
-                                      plaidProvider.isLinked
-                                          ? Icons.account_balance
-                                          : Icons.add_link,
-                                      color: plaidProvider.isLinked
-                                          ? Colors.green
-                                          : theme.colorScheme.primary,
-                                      size: 22,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          plaidProvider.isLinked
-                                              ? 'Connected Bank'
-                                              : 'Connect Bank Account',
-                                          style: theme.textTheme.bodyLarge?.copyWith(
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
-                                        if (plaidProvider.isLinked && plaidProvider.linkedInstitutionName != null)
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
                                           Text(
-                                            plaidProvider.linkedInstitutionName!,
-                                            style: theme.textTheme.bodySmall,
+                                            plaidProvider.isLinked
+                                                ? 'Connected Bank'
+                                                : 'Connect Bank Account',
+                                            style: theme.textTheme.bodyLarge?.copyWith(
+                                              fontWeight: FontWeight.w600,
+                                            ),
                                           ),
-                                      ],
+                                          if (plaidProvider.isLinked && plaidProvider.linkedInstitutionName != null)
+                                            Text(
+                                              plaidProvider.linkedInstitutionName!,
+                                              style: theme.textTheme.bodySmall,
+                                            ),
+                                        ],
+                                      ),
                                     ),
-                                  ),
-                                  if (plaidProvider.isLinked)
-                                    Icon(
-                                      Icons.check_circle,
-                                      color: Colors.green,
-                                      size: 20,
-                                    ),
-                                ],
+                                    if (plaidProvider.isLinked)
+                                      Icon(
+                                        Icons.check_circle,
+                                        color: Colors.green,
+                                        size: 20,
+                                      ),
+                                  ],
+                                ),
                               ),
                             ),
-                          ),
-                        );
-                      },
-                    ),
-                    _buildDivider(context),
+                          );
+                        },
+                      ),
+                      _buildDivider(context),
+                    ],
                     // Sign Out / Exit Guest Mode Button
                     Material(
                       color: Colors.transparent,

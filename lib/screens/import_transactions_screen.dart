@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:file_picker/file_picker.dart';
 import 'package:provider/provider.dart';
 import '../models/transaction.dart';
@@ -323,44 +324,65 @@ class _ImportTransactionsScreenState extends State<ImportTransactionsScreen> {
 
                   const SizedBox(height: 16),
 
-                  // Sync from Plaid button
-                  Consumer<PlaidProvider>(
-                    builder: (context, plaidProvider, child) {
-                      if (!plaidProvider.isLinked) {
-                        return OutlinedButton.icon(
-                          onPressed: () => plaidProvider.connectBankAccount(context),
-                          icon: const Icon(Icons.account_balance),
-                          label: const Text('Connect Bank Account'),
-                          style: OutlinedButton.styleFrom(
+                  // Sync from Plaid button (mobile only)
+                  if (!kIsWeb)
+                    Consumer<PlaidProvider>(
+                      builder: (context, plaidProvider, child) {
+                        if (!plaidProvider.isLinked) {
+                          return OutlinedButton.icon(
+                            onPressed: () => plaidProvider.connectBankAccount(context),
+                            icon: const Icon(Icons.account_balance),
+                            label: const Text('Connect Bank Account'),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                            ),
+                          );
+                        }
+
+                        return ElevatedButton.icon(
+                          onPressed: plaidProvider.isLoading
+                              ? null
+                              : () => _syncFromPlaid(plaidProvider),
+                          icon: plaidProvider.isLoading
+                              ? const SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(strokeWidth: 2),
+                                )
+                              : const Icon(Icons.sync),
+                          label: Text(
+                            plaidProvider.isLoading
+                                ? 'Syncing...'
+                                : 'Sync from ${plaidProvider.linkedInstitutionName ?? "Bank"}',
+                          ),
+                          style: ElevatedButton.styleFrom(
                             padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                            backgroundColor: Colors.green,
+                            foregroundColor: Colors.white,
                           ),
                         );
-                      }
-
-                      return ElevatedButton.icon(
-                        onPressed: plaidProvider.isLoading
-                            ? null
-                            : () => _syncFromPlaid(plaidProvider),
-                        icon: plaidProvider.isLoading
-                            ? const SizedBox(
-                                width: 16,
-                                height: 16,
-                                child: CircularProgressIndicator(strokeWidth: 2),
-                              )
-                            : const Icon(Icons.sync),
-                        label: Text(
-                          plaidProvider.isLoading
-                              ? 'Syncing...'
-                              : 'Sync from ${plaidProvider.linkedInstitutionName ?? "Bank"}',
+                      },
+                    ),
+                  // Web message
+                  if (kIsWeb)
+                    Card(
+                      color: Colors.blue.shade50,
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Row(
+                          children: [
+                            Icon(Icons.info_outline, color: Colors.blue.shade700),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                'Bank sync is only available on mobile. Use CSV import on web.',
+                                style: TextStyle(color: Colors.blue.shade900),
+                              ),
+                            ),
+                          ],
                         ),
-                        style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-                          backgroundColor: Colors.green,
-                          foregroundColor: Colors.white,
-                        ),
-                      );
-                    },
-                  ),
+                      ),
+                    ),
                 ],
               ),
             ),

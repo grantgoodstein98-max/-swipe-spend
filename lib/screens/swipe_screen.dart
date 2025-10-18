@@ -278,6 +278,10 @@ class _SwipeScreenState extends State<SwipeScreen> {
                           cardBuilder: (context, index,
                               horizontalOffsetPercentage,
                               verticalOffsetPercentage) {
+                            // Bounds check to prevent index out of range errors
+                            if (index >= uncategorizedTransactions.length) {
+                              return const SizedBox.shrink();
+                            }
                             final transaction = uncategorizedTransactions[index];
                             // Only show delete button on the top card (current card index)
                             final isTopCard = index == _currentCardIndex;
