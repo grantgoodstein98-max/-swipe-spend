@@ -122,6 +122,19 @@ class TransactionProvider extends ChangeNotifier {
     }
   }
 
+  /// Delete a transaction
+  Future<void> deleteTransaction(String transactionId) async {
+    try {
+      _transactions.removeWhere((t) => t.id == transactionId);
+      notifyListeners();
+      await _saveTransactions();
+      debugPrint('✅ Deleted transaction: $transactionId');
+    } catch (e) {
+      debugPrint('Error deleting transaction: $e');
+      rethrow;
+    }
+  }
+
   /// Get transactions by category
   List<Transaction> getTransactionsByCategory(String categoryId) {
     return _transactions

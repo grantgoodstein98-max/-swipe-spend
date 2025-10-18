@@ -283,14 +283,33 @@ class _SwipeScreenState extends State<SwipeScreen> {
                               return _buildCompletionCard(context);
                             }
 
+                            final transaction = uncategorizedTransactions[index];
                             return TransactionCard(
-                              transaction: uncategorizedTransactions[index],
+                              transaction: transaction,
                               horizontalOffsetPercentage:
                                   horizontalOffsetPercentage.toDouble(),
                               verticalOffsetPercentage:
                                   verticalOffsetPercentage.toDouble(),
                               categories: categories,
                               swipeMappings: categoryProvider.swipeMappings,
+                              onDelete: () async {
+                                // Delete the transaction
+                                await transactionProvider.deleteTransaction(transaction.id);
+
+                                // Show confirmation
+                                if (context.mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        'Deleted ${transaction.name}',
+                                        style: const TextStyle(fontWeight: FontWeight.bold),
+                                      ),
+                                      duration: const Duration(seconds: 2),
+                                      behavior: SnackBarBehavior.floating,
+                                    ),
+                                  );
+                                }
+                              },
                             );
                           },
                         ),

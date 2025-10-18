@@ -9,6 +9,7 @@ class TransactionCard extends StatelessWidget {
   final double? verticalOffsetPercentage;
   final List<model.Category>? categories;
   final Map<model.SwipeDirection, String>? swipeMappings;
+  final VoidCallback? onDelete;
 
   const TransactionCard({
     super.key,
@@ -17,6 +18,7 @@ class TransactionCard extends StatelessWidget {
     this.verticalOffsetPercentage,
     this.categories,
     this.swipeMappings,
+    this.onDelete,
   });
 
   model.Category? _getCategoryForDirection(model.SwipeDirection direction) {
@@ -375,6 +377,38 @@ class TransactionCard extends StatelessWidget {
                       ),
                     ),
                   ],
+                ),
+              ),
+            ),
+          ),
+
+        // Delete button (only show if onDelete callback is provided)
+        if (onDelete != null)
+          Positioned(
+            top: 8,
+            right: 8,
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: onDelete,
+                borderRadius: BorderRadius.circular(20),
+                child: Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? Colors.red.withOpacity(0.2)
+                        : Colors.red.withOpacity(0.1),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: Colors.red.withOpacity(0.3),
+                      width: 1,
+                    ),
+                  ),
+                  child: const Icon(
+                    Icons.close,
+                    size: 18,
+                    color: Colors.red,
+                  ),
                 ),
               ),
             ),
