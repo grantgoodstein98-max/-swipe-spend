@@ -239,24 +239,28 @@ class _SwipeScreenState extends State<SwipeScreen> {
               // Swipe area
               Expanded(
                 child: Padding(
-                  padding: const EdgeInsets.only(bottom: 40),
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
                   child: Center(
-                    child: Container(
-                      constraints: BoxConstraints(
-                        maxWidth: MediaQuery.of(context).size.width * 0.90,
-                        maxHeight: MediaQuery.of(context).size.height * 0.55,
-                      ),
-                    child: Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        uncategorizedTransactions.isEmpty
-                            ? _buildCompletionCard(context)
-                            : CardSwiper(
-                          controller: _controller,
-                          cardsCount: uncategorizedTransactions.length,
-                          numberOfCardsDisplayed: uncategorizedTransactions.length >= 2 ? 2 : 1,
-                          backCardOffset: const Offset(0, -20),
-                          padding: const EdgeInsets.all(24),
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        // Calculate card size to be centered
+                        final cardWidth = constraints.maxWidth.clamp(280.0, 400.0);
+                        final cardHeight = constraints.maxHeight.clamp(400.0, 550.0);
+
+                        return SizedBox(
+                          width: cardWidth,
+                          height: cardHeight,
+                          child: Stack(
+                            alignment: Alignment.center,
+                            children: [
+                              uncategorizedTransactions.isEmpty
+                                  ? _buildCompletionCard(context)
+                                  : CardSwiper(
+                                controller: _controller,
+                                cardsCount: uncategorizedTransactions.length,
+                                numberOfCardsDisplayed: uncategorizedTransactions.length >= 2 ? 2 : 1,
+                                backCardOffset: const Offset(0, -20),
+                                padding: EdgeInsets.zero,
                           onSwipe: (previousIndex, currentIndex, direction) {
                             if (currentIndex != null) {
                               setState(() {
@@ -345,8 +349,10 @@ class _SwipeScreenState extends State<SwipeScreen> {
                               ),
                             ),
                           ),
-                      ],
-                    ),
+                            ],
+                          ),
+                        );
+                      },
                     ),
                   ),
                 ),
