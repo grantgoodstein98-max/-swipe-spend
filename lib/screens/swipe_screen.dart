@@ -243,17 +243,18 @@ class _SwipeScreenState extends State<SwipeScreen> {
                   child: Center(
                     child: LayoutBuilder(
                       builder: (context, constraints) {
-                        // Calculate card size to be centered and maintain square aspect ratio
-                        final cardWidth = constraints.maxWidth.clamp(280.0, 400.0);
-                        // Keep cards square (1:1 ratio)
-                        final cardHeight = cardWidth;
+                        // Calculate card size - make it half the height of available space
+                        final availableHeight = constraints.maxHeight;
+                        final cardHeight = (availableHeight * 0.5).clamp(200.0, 300.0);
+                        final cardWidth = cardHeight * 1.2; // Slightly wider than tall
 
-                        return SizedBox(
-                          width: cardWidth,
-                          height: cardHeight,
-                          child: Stack(
-                            alignment: Alignment.center,
-                            children: [
+                        return Center(
+                          child: SizedBox(
+                            width: cardWidth,
+                            height: cardHeight,
+                            child: Stack(
+                              alignment: Alignment.center,
+                              children: [
                               uncategorizedTransactions.isEmpty
                                   ? _buildCompletionCard(context)
                                   : CardSwiper(
@@ -357,7 +358,8 @@ class _SwipeScreenState extends State<SwipeScreen> {
                               ),
                             ),
                           ),
-                            ],
+                              ],
+                            ),
                           ),
                         );
                       },
