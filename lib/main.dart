@@ -7,6 +7,7 @@ import 'providers/category_provider.dart';
 import 'providers/budget_provider.dart';
 import 'providers/theme_provider.dart';
 import 'providers/chat_provider.dart';
+import 'providers/guest_mode_provider.dart';
 import 'widgets/auth_wrapper.dart';
 import 'screens/home_screen.dart';
 
@@ -28,6 +29,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
+        ChangeNotifierProvider(create: (_) => GuestModeProvider()),
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ChangeNotifierProvider(create: (_) => TransactionProvider()),
         ChangeNotifierProvider(create: (_) => CategoryProvider()),

@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../models/category.dart' as model;
 import '../providers/category_provider.dart';
 import '../providers/theme_provider.dart';
+import '../providers/guest_mode_provider.dart';
 import '../widgets/add_category_dialog.dart';
 import 'import_transactions_screen.dart';
 import '../services/auth_service.dart';
@@ -23,8 +24,8 @@ class SettingsScreen extends StatelessWidget {
           style: theme.textTheme.displayLarge,
         ),
       ),
-      body: Consumer2<CategoryProvider, ThemeProvider>(
-        builder: (context, categoryProvider, themeProvider, child) {
+      body: Consumer3<CategoryProvider, ThemeProvider, GuestModeProvider>(
+        builder: (context, categoryProvider, themeProvider, guestModeProvider, child) {
           if (categoryProvider.isLoading) {
             return const Center(
               child: CircularProgressIndicator(),
@@ -61,7 +62,7 @@ class SettingsScreen extends StatelessWidget {
                 ),
                 child: Column(
                   children: [
-                    // User Email Row
+                    // User Email Row or Guest Mode Indicator
                     Padding(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 16,
@@ -76,7 +77,9 @@ class SettingsScreen extends StatelessWidget {
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Icon(
-                              Icons.person_outline,
+                              guestModeProvider.isGuestMode
+                                  ? Icons.person_outline
+                                  : Icons.person_outline,
                               color: theme.colorScheme.primary,
                               size: 22,
                             ),
@@ -87,12 +90,16 @@ class SettingsScreen extends StatelessWidget {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'Signed in as',
+                                  guestModeProvider.isGuestMode
+                                      ? 'Guest Mode'
+                                      : 'Signed in as',
                                   style: theme.textTheme.bodySmall,
                                 ),
                                 const SizedBox(height: 2),
                                 Text(
-                                  AuthService().currentUser?.email ?? 'Unknown',
+                                  guestModeProvider.isGuestMode
+                                      ? 'Data will not be saved'
+                                      : AuthService().currentUser?.email ?? 'Unknown',
                                   style: theme.textTheme.bodyLarge?.copyWith(
                                     fontWeight: FontWeight.w600,
                                   ),
@@ -104,11 +111,11 @@ class SettingsScreen extends StatelessWidget {
                       ),
                     ),
                     _buildDivider(context),
-                    // Sign Out Button
+                    // Sign Out / Exit Guest Mode Button
                     Material(
                       color: Colors.transparent,
                       child: InkWell(
-                        onTap: () => _handleSignOut(context),
+                        onTap: () => _handleSignOut(context, guestModeProvider),
                         borderRadius: const BorderRadius.vertical(
                           bottom: Radius.circular(12),
                         ),
@@ -126,14 +133,18 @@ class SettingsScreen extends StatelessWidget {
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                                 child: Icon(
-                                  Icons.logout,
+                                  guestModeProvider.isGuestMode
+                                      ? Icons.exit_to_app
+                                      : Icons.logout,
                                   color: theme.colorScheme.error,
                                   size: 22,
                                 ),
                               ),
                               const SizedBox(width: 12),
                               Text(
-                                'Sign Out',
+                                guestModeProvider.isGuestMode
+                                    ? 'Exit Guest Mode'
+                                    : 'Sign Out',
                                 style: theme.textTheme.bodyLarge?.copyWith(
                                   color: theme.colorScheme.error,
                                   fontWeight: FontWeight.w600,
@@ -1015,10 +1026,11 @@ class SettingsScreen extends StatelessWidget {
     }
   }
 
-  /// Handle sign out with confirmation
-  Future<void> _handleSignOut(BuildContext context) async {
+  /// Handle sign out or exit guest mode with confirmation
+  Future<void> _handleSignOut(BuildContext context, GuestModeProvider guestModeProvider) async {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final isGuest = guestModeProvider.isGuestMode;
 
     final confirmed = await showDialog<bool>(
       context: context,
@@ -1026,13 +1038,15 @@ class SettingsScreen extends StatelessWidget {
         backgroundColor: isDark ? const Color(0xFF1C1C1E) : Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text(
-          'Sign Out?',
+          isGuest ? 'Exit Guest Mode?' : 'Sign Out?',
           style: theme.textTheme.headlineSmall?.copyWith(
             fontWeight: FontWeight.bold,
           ),
         ),
         content: Text(
-          'Are you sure you want to sign out?',
+          isGuest
+              ? 'Your data will be lost. Are you sure you want to exit guest mode?'
+              : 'Are you sure you want to sign out?',
           style: theme.textTheme.bodyMedium,
         ),
         actions: [
@@ -1045,7 +1059,7 @@ class SettingsScreen extends StatelessWidget {
             style: TextButton.styleFrom(
               foregroundColor: theme.colorScheme.error,
             ),
-            child: const Text('Sign Out'),
+            child: Text(isGuest ? 'Exit' : 'Sign Out'),
           ),
         ],
       ),
@@ -1053,7 +1067,11 @@ class SettingsScreen extends StatelessWidget {
 
     if (confirmed == true) {
       try {
-        await AuthService().signOut();
+        if (isGuest) {
+          guestModeProvider.exitGuestMode();
+        } else {
+          await AuthService().signOut();
+        }
         // Navigation handled by AuthWrapper
       } catch (e) {
         if (context.mounted) {
