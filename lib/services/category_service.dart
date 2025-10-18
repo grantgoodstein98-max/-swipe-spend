@@ -100,7 +100,7 @@ class CategoryService {
 
       if (jsonString == null || jsonString.isEmpty) {
         // Initialize with default mappings if none exist
-        final defaultMappings = Category.getDefaultSwipeMappings();
+        final defaultMappings = await _getDefaultSwipeMappingsWithOtherCategory();
         await saveSwipeMappings(defaultMappings);
         return defaultMappings;
       }
@@ -113,12 +113,49 @@ class CategoryService {
         );
         mappings[direction] = value as String;
       });
+
+      // MIGRATION: Ensure down swipe is always mapped to "Other" category
+      // Find the "Other" category and ensure it's mapped to down swipe
+      final categories = await loadCategories();
+      final otherCategory = categories.firstWhere(
+        (c) => c.name.toLowerCase() == 'other',
+        orElse: () => categories.last, // Fallback to last category if "Other" not found
+      );
+
+      if (!mappings.containsKey(SwipeDirection.down) ||
+          mappings[SwipeDirection.down] != otherCategory.id) {
+        mappings[SwipeDirection.down] = otherCategory.id;
+        await saveSwipeMappings(mappings);
+      }
+
       return mappings;
     } catch (e) {
       // If there's any error loading, return default mappings
-      final defaultMappings = Category.getDefaultSwipeMappings();
+      final defaultMappings = await _getDefaultSwipeMappingsWithOtherCategory();
       await saveSwipeMappings(defaultMappings);
       return defaultMappings;
     }
+  }
+
+  /// Get default swipe mappings with the actual "Other" category ID
+  Future<Map<SwipeDirection, String>> _getDefaultSwipeMappingsWithOtherCategory() async {
+    final categories = await loadCategories();
+    final otherCategory = categories.firstWhere(
+      (c) => c.name.toLowerCase() == 'other',
+      orElse: () => categories.last,
+    );
+
+    // Get the first 3 non-Other categories for the other directions
+    final nonOtherCategories = categories
+        .where((c) => c.name.toLowerCase() != 'other')
+        .take(3)
+        .toList();
+
+    return {
+      SwipeDirection.down: otherCategory.id,
+      if (nonOtherCategories.isNotEmpty) SwipeDirection.up: nonOtherCategories[0].id,
+      if (nonOtherCategories.length > 1) SwipeDirection.right: nonOtherCategories[1].id,
+      if (nonOtherCategories.length > 2) SwipeDirection.left: nonOtherCategories[2].id,
+    };
   }
 }

@@ -1055,7 +1055,10 @@ class SettingsScreen extends StatelessWidget {
         } else {
           await AuthService().signOut();
         }
-        // Navigation handled by AuthWrapper
+        // Navigate back to login screen by popping to root
+        if (context.mounted) {
+          Navigator.of(context).popUntil((route) => route.isFirst);
+        }
       } catch (e) {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
