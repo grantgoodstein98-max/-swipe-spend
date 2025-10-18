@@ -387,7 +387,7 @@ class TransactionCard extends StatelessWidget {
         if (onDelete != null)
           Positioned(
             top: 8,
-            right: 8,
+            left: 8,
             child: Material(
               color: Colors.transparent,
               child: InkWell(

@@ -279,6 +279,8 @@ class _SwipeScreenState extends State<SwipeScreen> {
                               horizontalOffsetPercentage,
                               verticalOffsetPercentage) {
                             final transaction = uncategorizedTransactions[index];
+                            // Only show delete button on the top card (current card index)
+                            final isTopCard = index == _currentCardIndex;
                             return TransactionCard(
                               transaction: transaction,
                               horizontalOffsetPercentage:
@@ -287,7 +289,8 @@ class _SwipeScreenState extends State<SwipeScreen> {
                                   verticalOffsetPercentage.toDouble(),
                               categories: categories,
                               swipeMappings: categoryProvider.swipeMappings,
-                              onDelete: () async {
+                              // Only provide onDelete for the top card
+                              onDelete: isTopCard ? () async {
                                 // Delete the transaction
                                 await transactionProvider.deleteTransaction(transaction.id);
 
@@ -304,7 +307,7 @@ class _SwipeScreenState extends State<SwipeScreen> {
                                     ),
                                   );
                                 }
-                              },
+                              } : null,
                             );
                           },
                         ),

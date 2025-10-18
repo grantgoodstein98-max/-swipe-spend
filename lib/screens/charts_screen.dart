@@ -12,6 +12,7 @@ import '../providers/theme_provider.dart';
 import '../utils/chart_helper.dart';
 import '../utils/color_helper.dart';
 import 'settings_screen.dart';
+import 'home_screen.dart';
 
 /// Screen for viewing spending charts and analytics
 class ChartsScreen extends StatefulWidget {
@@ -30,6 +31,8 @@ class _ChartsScreenState extends State<ChartsScreen> with TickerProviderStateMix
   final Map<String, GlobalKey> _categoryKeys = {};
   final Map<String, bool> _expandedCategories = {};
   String? _highlightedCategoryId;
+  bool _showCategoryBreakdown = false;
+  bool _showMonthlyTrends = false;
 
   @override
   void dispose() {
@@ -180,26 +183,10 @@ class _ChartsScreenState extends State<ChartsScreen> with TickerProviderStateMix
                           allTransactions,
                         ),
 
-                        const SizedBox(height: 32),
-
-                        // Monthly trends section header
-                        const Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 16),
-                          child: Text(
-                            'MONTHLY TRENDS',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.grey,
-                              letterSpacing: 0.5,
-                            ),
-                          ),
-                        ),
-
                         const SizedBox(height: 16),
 
-                        // Monthly trends bar chart
-                        _buildMonthlyTrendsChart(
+                        // Monthly trends collapsible section
+                        _buildMonthlyTrendsSection(
                           allTransactions,
                           categoryProvider.categories,
                           themeProvider,
@@ -314,11 +301,11 @@ class _ChartsScreenState extends State<ChartsScreen> with TickerProviderStateMix
     return Stack(
       children: [
         SizedBox(
-          height: MediaQuery.of(context).size.height * 0.4,
+          height: MediaQuery.of(context).size.height * 0.5, // Increased from 0.4 to 0.5
           child: PieChart(
             PieChartData(
-              sectionsSpace: 2,
-              centerSpaceRadius: 40,
+              sectionsSpace: 3, // Increased spacing between slices
+              centerSpaceRadius: 50, // Increased center space
               sections: _buildPieChartSections(
                 sortedCategories,
                 categoryProvider,
@@ -452,6 +439,21 @@ class _ChartsScreenState extends State<ChartsScreen> with TickerProviderStateMix
     ThemeProvider themeProvider,
     double totalSpending,
   ) {
+    // Calculate positions for small slice badges to avoid overlap
+    final smallSliceAngles = <int, double>{};
+    double cumulativeAngle = 0;
+
+    for (int i = 0; i < sortedCategories.length; i++) {
+      final entry = sortedCategories[i];
+      final percentage = ChartHelper.calculatePercentage(entry.value, totalSpending);
+      final sliceAngle = (percentage / 100) * 360;
+
+      if (percentage < 1.0) {
+        smallSliceAngles[i] = cumulativeAngle + (sliceAngle / 2);
+      }
+      cumulativeAngle += sliceAngle;
+    }
+
     return List.generate(sortedCategories.length, (index) {
       final entry = sortedCategories[index];
       final category = categoryProvider.getCategoryById(entry.key);
@@ -469,11 +471,18 @@ class _ChartsScreenState extends State<ChartsScreen> with TickerProviderStateMix
         themeProvider.isDarkMode,
       );
 
+      // For slices under 1%, show label outside with a badge
+      final isSmallSlice = percentage < 1.0;
+
+      // Make small slices slightly bigger radius to be more clickable
+      final baseRadius = isSmallSlice ? 105.0 : 100.0;
+      final touchRadius = isTouched ? baseRadius + 10.0 : baseRadius;
+
       return PieChartSectionData(
         color: color,
         value: entry.value,
-        title: '${percentage.toStringAsFixed(1)}%',
-        radius: isTouched ? 110 : 100,
+        title: isSmallSlice ? '' : '${percentage.toStringAsFixed(1)}%',
+        radius: touchRadius,
         titleStyle: TextStyle(
           fontSize: isTouched ? 18 : 14,
           fontWeight: FontWeight.bold,
@@ -485,6 +494,47 @@ class _ChartsScreenState extends State<ChartsScreen> with TickerProviderStateMix
             ),
           ],
         ),
+        // Show badge outside for small slices with smart positioning
+        badgeWidget: isSmallSlice
+            ? GestureDetector(
+                onTap: () {
+                  HapticFeedback.lightImpact();
+                  setState(() {
+                    _touchedIndex = index;
+                    _touchedCategoryId = entry.key;
+                  });
+                  _scrollToCategory(entry.key);
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: color,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: Colors.white,
+                      width: 2,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.3),
+                        blurRadius: 4,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Text(
+                    '${percentage.toStringAsFixed(1)}%',
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              )
+            : null,
+        // Use calculated position to reduce overlap
+        badgePositionPercentageOffset: isSmallSlice ? 1.4 : 0.98,
       );
     });
   }
@@ -498,34 +548,94 @@ class _ChartsScreenState extends State<ChartsScreen> with TickerProviderStateMix
     DateTime endDate,
     List<Transaction> allTransactions,
   ) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Container(
-      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1C1C1E) : Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: isDark
+            ? Border.all(
+                color: const Color(0xFF38383A).withOpacity(0.5),
+                width: 0.5,
+              )
+            : null,
+        boxShadow: isDark
+            ? null
+            : [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 3,
+                  offset: const Offset(0, 1),
+                ),
+              ],
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Padding(
-            padding: const EdgeInsets.only(left: 8, bottom: 16),
-            child: Text(
-              'Breakdown by Category',
-              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.bold,
+          InkWell(
+            onTap: () {
+              HapticFeedback.selectionClick();
+              setState(() {
+                _showCategoryBreakdown = !_showCategoryBreakdown;
+              });
+            },
+            borderRadius: BorderRadius.circular(12),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Breakdown by Category',
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
+                  AnimatedRotation(
+                    turns: _showCategoryBreakdown ? 0.5 : 0,
+                    duration: const Duration(milliseconds: 300),
+                    child: Icon(
+                      Icons.expand_more,
+                      color: theme.textTheme.bodyMedium?.color,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
-          ...sortedCategories.map((entry) {
-            final category = categoryProvider.getCategoryById(entry.key);
-            if (category == null) return const SizedBox.shrink();
+          AnimatedSize(
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+            child: _showCategoryBreakdown
+                ? Column(
+                    children: [
+                      const Divider(height: 1),
+                      Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          children: sortedCategories.map((entry) {
+                            final category = categoryProvider.getCategoryById(entry.key);
+                            if (category == null) return const SizedBox.shrink();
 
-            return _buildCategorySection(
-              entry,
-              category,
-              themeProvider,
-              totalSpending,
-              startDate,
-              endDate,
-              allTransactions,
-            );
-          }),
+                            return _buildCategorySection(
+                              entry,
+                              category,
+                              themeProvider,
+                              totalSpending,
+                              startDate,
+                              endDate,
+                              allTransactions,
+                            );
+                          }).toList(),
+                        ),
+                      ),
+                    ],
+                  )
+                : const SizedBox.shrink(),
+          ),
         ],
       ),
     );
@@ -738,14 +848,99 @@ class _ChartsScreenState extends State<ChartsScreen> with TickerProviderStateMix
           const SizedBox(height: 24),
           ElevatedButton.icon(
             onPressed: () {
-              // Navigate to swipe screen
-              DefaultTabController.of(context).animateTo(0);
+              // Navigate to swipe screen (tab index 0)
+              HomeScreen.switchTab(context, 0);
             },
             icon: const Icon(Icons.swipe),
             label: const Text('Start Categorizing'),
             style: ElevatedButton.styleFrom(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Monthly trends section wrapper
+  Widget _buildMonthlyTrendsSection(
+    List<Transaction> transactions,
+    List<model.Category> categories,
+    ThemeProvider themeProvider,
+  ) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1C1C1E) : Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: isDark
+            ? Border.all(
+                color: const Color(0xFF38383A).withOpacity(0.5),
+                width: 0.5,
+              )
+            : null,
+        boxShadow: isDark
+            ? null
+            : [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 3,
+                  offset: const Offset(0, 1),
+                ),
+              ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          InkWell(
+            onTap: () {
+              HapticFeedback.selectionClick();
+              setState(() {
+                _showMonthlyTrends = !_showMonthlyTrends;
+              });
+            },
+            borderRadius: BorderRadius.circular(12),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Monthly Trends',
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  AnimatedRotation(
+                    turns: _showMonthlyTrends ? 0.5 : 0,
+                    duration: const Duration(milliseconds: 300),
+                    child: Icon(
+                      Icons.expand_more,
+                      color: theme.textTheme.bodyMedium?.color,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          AnimatedSize(
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+            child: _showMonthlyTrends
+                ? Column(
+                    children: [
+                      const Divider(height: 1),
+                      _buildMonthlyTrendsChart(
+                        transactions,
+                        categories,
+                        themeProvider,
+                      ),
+                    ],
+                  )
+                : const SizedBox.shrink(),
           ),
         ],
       ),
@@ -763,26 +958,7 @@ class _ChartsScreenState extends State<ChartsScreen> with TickerProviderStateMix
     if (monthlyData.isEmpty || !monthlyData.values.any((m) => m.isNotEmpty)) {
       return Container(
         height: 300,
-        margin: const EdgeInsets.symmetric(horizontal: 16),
         padding: const EdgeInsets.all(32),
-        decoration: BoxDecoration(
-          color: Theme.of(context).brightness == Brightness.dark
-              ? const Color(0xFF1C1C1E)
-              : Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Theme.of(context).brightness == Brightness.dark
-              ? Border.all(color: const Color(0xFF38383A), width: 0.5)
-              : null,
-          boxShadow: Theme.of(context).brightness == Brightness.dark
-              ? []
-              : [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
-                    blurRadius: 3,
-                    offset: const Offset(0, 1),
-                  ),
-                ],
-        ),
         child: Center(
           child: Text(
             'No spending data available for the last 6 months',
@@ -795,26 +971,7 @@ class _ChartsScreenState extends State<ChartsScreen> with TickerProviderStateMix
 
     return Container(
       height: 400,
-      margin: const EdgeInsets.symmetric(horizontal: 16),
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Theme.of(context).brightness == Brightness.dark
-            ? const Color(0xFF1C1C1E)
-            : Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Theme.of(context).brightness == Brightness.dark
-            ? Border.all(color: const Color(0xFF38383A), width: 0.5)
-            : null,
-        boxShadow: Theme.of(context).brightness == Brightness.dark
-            ? []
-            : [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 3,
-                  offset: const Offset(0, 1),
-                ),
-              ],
-      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
