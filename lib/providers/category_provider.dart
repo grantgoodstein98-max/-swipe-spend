@@ -93,17 +93,16 @@ class CategoryProvider extends ChangeNotifier {
   }
 
   /// Get available swipe directions (ones not currently mapped)
-  /// Down is never available as it's reserved for "Other"
   List<model.SwipeDirection> getAvailableDirections() {
     final usedDirections = _swipeMappings.keys.toSet();
     return model.SwipeDirection.values
-        .where((d) => !usedDirections.contains(d) && d != model.SwipeDirection.down)
+        .where((d) => !usedDirections.contains(d))
         .toList();
   }
 
-  /// Get categories that can be mapped to swipe directions (all except "Other")
+  /// Get categories that can be mapped to swipe directions (all categories)
   List<model.Category> getCategoriesForSwipeMapping() {
-    return _categories.where((c) => c.name.toLowerCase() != 'other').toList();
+    return _categories;
   }
 
   /// Get "Other" category
@@ -116,26 +115,10 @@ class CategoryProvider extends ChangeNotifier {
   }
 
   /// Map a swipe direction to a category
-  /// Cannot change the "down" direction (always mapped to "Other")
+  /// All 8 directions can be freely mapped to any category
   Future<void> mapSwipeToCategory(
       model.SwipeDirection direction, String categoryId) async {
     try {
-      // Prevent changing down direction
-      if (direction == model.SwipeDirection.down) {
-        final otherCategory = getOtherCategory();
-        if (otherCategory != null && categoryId != otherCategory.id) {
-          throw Exception('Down swipe is reserved for the Other category');
-        }
-      }
-
-      // Prevent mapping "Other" to non-down directions
-      final category = getCategoryById(categoryId);
-      if (category != null &&
-          category.name.toLowerCase() == 'other' &&
-          direction != model.SwipeDirection.down) {
-        throw Exception('Other category can only be mapped to down swipe');
-      }
-
       // Update the mapping
       _swipeMappings[direction] = categoryId;
       await _categoryService.saveSwipeMappings(_swipeMappings);
@@ -146,13 +129,9 @@ class CategoryProvider extends ChangeNotifier {
     }
   }
 
-  /// Unmap a swipe direction (cannot unmap "down")
+  /// Unmap a swipe direction
   Future<void> unmapSwipeDirection(model.SwipeDirection direction) async {
     try {
-      if (direction == model.SwipeDirection.down) {
-        throw Exception('Cannot unmap down swipe (reserved for Other)');
-      }
-
       _swipeMappings.remove(direction);
       await _categoryService.saveSwipeMappings(_swipeMappings);
       notifyListeners();

@@ -114,20 +114,6 @@ class CategoryService {
         mappings[direction] = value as String;
       });
 
-      // MIGRATION: Ensure down swipe is always mapped to "Other" category
-      // Find the "Other" category and ensure it's mapped to down swipe
-      final categories = await loadCategories();
-      final otherCategory = categories.firstWhere(
-        (c) => c.name.toLowerCase() == 'other',
-        orElse: () => categories.last, // Fallback to last category if "Other" not found
-      );
-
-      if (!mappings.containsKey(SwipeDirection.down) ||
-          mappings[SwipeDirection.down] != otherCategory.id) {
-        mappings[SwipeDirection.down] = otherCategory.id;
-        await saveSwipeMappings(mappings);
-      }
-
       return mappings;
     } catch (e) {
       // If there's any error loading, return default mappings
@@ -138,24 +124,27 @@ class CategoryService {
   }
 
   /// Get default swipe mappings with the actual "Other" category ID
+  /// Now supports all 8 directions (4 main + 4 corner)
   Future<Map<SwipeDirection, String>> _getDefaultSwipeMappingsWithOtherCategory() async {
     final categories = await loadCategories();
-    final otherCategory = categories.firstWhere(
-      (c) => c.name.toLowerCase() == 'other',
-      orElse: () => categories.last,
-    );
 
-    // Get the first 3 non-Other categories for the other directions
-    final nonOtherCategories = categories
-        .where((c) => c.name.toLowerCase() != 'other')
-        .take(3)
-        .toList();
+    // Use the default swipe mappings from Category model
+    final defaultMappings = Category.getDefaultSwipeMappings();
 
-    return {
-      SwipeDirection.down: otherCategory.id,
-      if (nonOtherCategories.isNotEmpty) SwipeDirection.up: nonOtherCategories[0].id,
-      if (nonOtherCategories.length > 1) SwipeDirection.right: nonOtherCategories[1].id,
-      if (nonOtherCategories.length > 2) SwipeDirection.left: nonOtherCategories[2].id,
-    };
+    // Map each SwipeDirection to the actual category ID from loaded categories
+    final mappings = <SwipeDirection, String>{};
+
+    defaultMappings.forEach((direction, defaultCategoryId) {
+      // Find the category with this ID in the loaded categories
+      try {
+        final category = categories.firstWhere((c) => c.id == defaultCategoryId);
+        mappings[direction] = category.id;
+      } catch (e) {
+        // If category not found, skip this mapping
+        // This shouldn't happen with default categories, but prevents errors
+      }
+    });
+
+    return mappings;
   }
 }

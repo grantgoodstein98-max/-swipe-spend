@@ -240,29 +240,36 @@ class _SwipeScreenState extends State<SwipeScreen> {
               Expanded(
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 40),
-                  child: Center(
-                    child: LayoutBuilder(
-                      builder: (context, constraints) {
-                        // Calculate card size - make it half the height of available space
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                        // Calculate card size - use most of the available space
                         final availableHeight = constraints.maxHeight;
-                        final cardHeight = (availableHeight * 0.5).clamp(200.0, 300.0);
-                        final cardWidth = cardHeight * 1.2; // Slightly wider than tall
+                        final availableWidth = constraints.maxWidth;
 
-                        return Center(
-                          child: SizedBox(
-                            width: cardWidth,
-                            height: cardHeight,
-                            child: Stack(
+                        // Use 80% of available height and width, with reasonable min/max bounds
+                        final cardHeight = (availableHeight * 0.8).clamp(300.0, 600.0);
+                        final cardWidth = (availableWidth * 0.85).clamp(350.0, 500.0);
+
+                        // Calculate actual card dimensions (smaller than container)
+                        final actualCardWidth = cardWidth * 0.75; // 75% of container width
+                        final actualCardHeight = cardHeight * 0.75; // 75% of container height
+
+                        return Stack(
                               alignment: Alignment.center,
                               children: [
                               uncategorizedTransactions.isEmpty
-                                  ? _buildCompletionCard(context)
-                                  : CardSwiper(
-                                controller: _controller,
-                                cardsCount: uncategorizedTransactions.length,
-                                numberOfCardsDisplayed: uncategorizedTransactions.length >= 2 ? 2 : 1,
-                                backCardOffset: const Offset(0, -20),
-                                padding: EdgeInsets.zero,
+                                  ? Center(child: _buildCompletionCard(context))
+                                  : Align(
+                                      alignment: const Alignment(0.75, 0.0), // 75% to the right, centered vertically
+                                      child: SizedBox(
+                                        width: actualCardWidth,
+                                        height: actualCardHeight,
+                                        child: CardSwiper(
+                                          controller: _controller,
+                                          cardsCount: uncategorizedTransactions.length,
+                                          numberOfCardsDisplayed: uncategorizedTransactions.length >= 2 ? 2 : 1,
+                                          backCardOffset: const Offset(0, -20),
+                                          padding: EdgeInsets.zero,
                           onSwipe: (previousIndex, currentIndex, direction) {
                             if (currentIndex != null) {
                               setState(() {
@@ -316,56 +323,21 @@ class _SwipeScreenState extends State<SwipeScreen> {
                               } : null,
                             );
                           },
-                        ),
-                        // Card counter - only show when there are transactions
-                        if (uncategorizedTransactions.isNotEmpty)
-                          Positioned(
-                            top: -10,
-                            right: 20,
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 8,
-                              ),
-                              decoration: BoxDecoration(
-                                color: theme.brightness == Brightness.light
-                                    ? Colors.white.withOpacity(0.9)
-                                    : Colors.black.withOpacity(0.7),
-                                borderRadius: BorderRadius.circular(20),
-                                border: Border.all(
-                                  color: theme.brightness == Brightness.light
-                                      ? Colors.black.withOpacity(0.08)
-                                      : Colors.white.withOpacity(0.15),
-                                  width: 0.5,
-                                ),
-                                boxShadow: theme.brightness == Brightness.light
-                                    ? [
-                                        BoxShadow(
-                                          color: Colors.black.withOpacity(0.15),
-                                          blurRadius: 12,
-                                          offset: const Offset(0, 4),
                                         ),
-                                      ]
-                                    : null,
-                              ),
-                              child: Text(
-                                '${uncategorizedTransactions.length}',
-                                style: theme.textTheme.labelMedium?.copyWith(
-                                  fontWeight: FontWeight.w600,
-                                  letterSpacing: 0.5,
-                                  fontSize: 14,
-                                ),
-                              ),
-                            ),
-                          ),
+                                      ),
+                                    ),
+                              // Card counter - temporarily removed for testing alignment
+                              // if (uncategorizedTransactions.isNotEmpty)
+                              //   Positioned(
+                              //     top: -10,
+                              //     right: 20,
+                              //     child: Container(...),
+                              //   ),
                               ],
-                            ),
-                          ),
                         );
                       },
                     ),
                   ),
-                ),
               ),
             ],
           );

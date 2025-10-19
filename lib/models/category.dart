@@ -2,7 +2,16 @@ import 'package:flutter/material.dart';
 import '../utils/available_icons.dart';
 
 /// Direction of swipe gesture
-enum SwipeDirection { up, down, left, right }
+enum SwipeDirection {
+  up,
+  down,
+  left,
+  right,
+  topLeft,
+  topRight,
+  bottomLeft,
+  bottomRight,
+}
 
 /// Represents a spending category
 class Category {
@@ -91,6 +100,24 @@ class Category {
       ),
       Category(
         id: '5',
+        name: 'Bills',
+        colorHex: 'FFC107',
+        iconName: 'receipt',
+      ),
+      Category(
+        id: '6',
+        name: 'Health',
+        colorHex: '4CAF50',
+        iconName: 'local_hospital',
+      ),
+      Category(
+        id: '7',
+        name: 'Home',
+        colorHex: '795548',
+        iconName: 'home',
+      ),
+      Category(
+        id: '8',
         name: 'Other',
         colorHex: '607D8B',
         iconName: 'category',
@@ -98,13 +125,19 @@ class Category {
     ];
   }
 
-  /// Get default swipe mappings (Other=down, top 3 categories for other directions)
+  /// Get default swipe mappings for all 8 directions
   static Map<SwipeDirection, String> getDefaultSwipeMappings() {
     return {
-      SwipeDirection.down: '5',  // Other - fixed
-      SwipeDirection.up: '1',     // Food
-      SwipeDirection.right: '2',  // Transport
-      SwipeDirection.left: '3',   // Shopping
+      // Main directions
+      SwipeDirection.up: '1',            // Food
+      SwipeDirection.down: '2',          // Transport
+      SwipeDirection.left: '3',          // Shopping
+      SwipeDirection.right: '4',         // Entertainment
+      // Corner directions
+      SwipeDirection.topLeft: '5',       // Bills
+      SwipeDirection.topRight: '6',      // Health
+      SwipeDirection.bottomLeft: '7',    // Home
+      SwipeDirection.bottomRight: '8',   // Other
     };
   }
 }

@@ -42,45 +42,76 @@ class TransactionCard extends StatelessWidget {
     final absDx = horizontal.abs();
     final absDy = vertical.abs();
 
-    // Check if horizontal or vertical is primary
-    final isHorizontalPrimary = absDx > absDy;
-    final isVerticalPrimary = absDy > absDx;
-
     // Initialize all opacities to 0
     double rightOpacity = 0.0;
     double leftOpacity = 0.0;
     double upOpacity = 0.0;
     double downOpacity = 0.0;
+    double topLeftOpacity = 0.0;
+    double topRightOpacity = 0.0;
+    double bottomLeftOpacity = 0.0;
+    double bottomRightOpacity = 0.0;
 
-    // Only show ONE direction icon based on primary axis
-    if (isHorizontalPrimary && horizontal > 0.1) {
-      // Swiping right
-      rightOpacity = (horizontal * 2).clamp(0.0, 1.0);
-    } else if (isHorizontalPrimary && horizontal < -0.1) {
-      // Swiping left
-      leftOpacity = (horizontal.abs() * 2).clamp(0.0, 1.0);
-    } else if (isVerticalPrimary && vertical < -0.1) {
-      // Swiping up
-      upOpacity = (vertical.abs() * 2).clamp(0.0, 1.0);
-    } else if (isVerticalPrimary && vertical > 0.1) {
-      // Swiping down
-      downOpacity = (vertical * 2).clamp(0.0, 1.0);
+    // Diagonal threshold - both dx and dy must be significant (> 0.1)
+    final isDiagonal = absDx > 0.1 && absDy > 0.1;
+
+    // Check if it's a diagonal swipe based on ratio
+    // If dx and dy are similar (within 40-250% ratio), it's diagonal
+    final ratio = absDx > 0 ? absDy / absDx : 0;
+    final isDiagonalRatio = ratio > 0.4 && ratio < 2.5;
+
+    // Determine which direction icon to show
+    if (isDiagonal && isDiagonalRatio) {
+      // DIAGONAL SWIPES - corner directions
+      final strength = ((absDx + absDy) / 2 * 2).clamp(0.0, 1.0);
+
+      if (horizontal > 0 && vertical < 0) {
+        // Top-right corner
+        topRightOpacity = strength;
+      } else if (horizontal < 0 && vertical < 0) {
+        // Top-left corner
+        topLeftOpacity = strength;
+      } else if (horizontal < 0 && vertical > 0) {
+        // Bottom-left corner
+        bottomLeftOpacity = strength;
+      } else if (horizontal > 0 && vertical > 0) {
+        // Bottom-right corner
+        bottomRightOpacity = strength;
+      }
+    } else {
+      // CARDINAL SWIPES - only show if clearly horizontal or vertical
+      final isHorizontalPrimary = absDx > absDy;
+      final isVerticalPrimary = absDy > absDx;
+
+      if (isHorizontalPrimary && horizontal > 0.1) {
+        // Swiping right
+        rightOpacity = (horizontal * 2).clamp(0.0, 1.0);
+      } else if (isHorizontalPrimary && horizontal < -0.1) {
+        // Swiping left
+        leftOpacity = (horizontal.abs() * 2).clamp(0.0, 1.0);
+      } else if (isVerticalPrimary && vertical < -0.1) {
+        // Swiping up
+        upOpacity = (vertical.abs() * 2).clamp(0.0, 1.0);
+      } else if (isVerticalPrimary && vertical > 0.1) {
+        // Swiping down
+        downOpacity = (vertical * 2).clamp(0.0, 1.0);
+      }
     }
 
-    // Get categories for each direction
+    // Get categories for each direction (all 8)
     final rightCategory = _getCategoryForDirection(model.SwipeDirection.right);
     final leftCategory = _getCategoryForDirection(model.SwipeDirection.left);
     final upCategory = _getCategoryForDirection(model.SwipeDirection.up);
     final downCategory = _getCategoryForDirection(model.SwipeDirection.down);
+    final topLeftCategory = _getCategoryForDirection(model.SwipeDirection.topLeft);
+    final topRightCategory = _getCategoryForDirection(model.SwipeDirection.topRight);
+    final bottomLeftCategory = _getCategoryForDirection(model.SwipeDirection.bottomLeft);
+    final bottomRightCategory = _getCategoryForDirection(model.SwipeDirection.bottomRight);
 
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    return SizedBox(
-      // FIXED SIZE - All cards will be exactly the same dimensions
-      width: double.infinity,
-      height: double.infinity,
-      child: Stack(
+    return Stack(
         children: [
           // Main card with Apple-style design
           Container(
@@ -383,6 +414,208 @@ class TransactionCard extends StatelessWidget {
             ),
           ),
 
+        // Top-Left corner swipe icon
+        if (topLeftOpacity > 0 && topLeftCategory != null)
+          Positioned(
+            top: 20,
+            left: 20,
+            child: Opacity(
+              opacity: topLeftOpacity,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: topLeftCategory.color.withOpacity(0.95),
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: topLeftCategory.color.withOpacity(0.5),
+                          blurRadius: 12,
+                          spreadRadius: 2,
+                        ),
+                      ],
+                    ),
+                    child: const Icon(
+                      Icons.north_west,
+                      size: 48,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: topLeftCategory.color.withOpacity(0.9),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      topLeftCategory.name,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+        // Top-Right corner swipe icon
+        if (topRightOpacity > 0 && topRightCategory != null)
+          Positioned(
+            top: 20,
+            right: 20,
+            child: Opacity(
+              opacity: topRightOpacity,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: topRightCategory.color.withOpacity(0.95),
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: topRightCategory.color.withOpacity(0.5),
+                          blurRadius: 12,
+                          spreadRadius: 2,
+                        ),
+                      ],
+                    ),
+                    child: const Icon(
+                      Icons.north_east,
+                      size: 48,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: topRightCategory.color.withOpacity(0.9),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      topRightCategory.name,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+        // Bottom-Left corner swipe icon
+        if (bottomLeftOpacity > 0 && bottomLeftCategory != null)
+          Positioned(
+            bottom: 20,
+            left: 20,
+            child: Opacity(
+              opacity: bottomLeftOpacity,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: bottomLeftCategory.color.withOpacity(0.9),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      bottomLeftCategory.name,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: bottomLeftCategory.color.withOpacity(0.95),
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: bottomLeftCategory.color.withOpacity(0.5),
+                          blurRadius: 12,
+                          spreadRadius: 2,
+                        ),
+                      ],
+                    ),
+                    child: const Icon(
+                      Icons.south_west,
+                      size: 48,
+                      color: Colors.white,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+        // Bottom-Right corner swipe icon
+        if (bottomRightOpacity > 0 && bottomRightCategory != null)
+          Positioned(
+            bottom: 20,
+            right: 20,
+            child: Opacity(
+              opacity: bottomRightOpacity,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: bottomRightCategory.color.withOpacity(0.9),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      bottomRightCategory.name,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: bottomRightCategory.color.withOpacity(0.95),
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: bottomRightCategory.color.withOpacity(0.5),
+                          blurRadius: 12,
+                          spreadRadius: 2,
+                        ),
+                      ],
+                    ),
+                    child: const Icon(
+                      Icons.south_east,
+                      size: 48,
+                      color: Colors.white,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
         // Delete button (only show if onDelete callback is provided)
         if (onDelete != null)
           Positioned(
@@ -415,7 +648,6 @@ class TransactionCard extends StatelessWidget {
             ),
           ),
         ],
-      ),
     );
   }
 }

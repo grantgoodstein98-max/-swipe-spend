@@ -491,7 +491,20 @@ class SettingsScreen extends StatelessWidget {
               ),
               const SizedBox(height: 12),
 
-              // Swipe direction cards with iOS grouped style
+              // Main Directions Section
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Text(
+                  'MAIN DIRECTIONS',
+                  style: theme.textTheme.labelLarge?.copyWith(
+                    color: theme.textTheme.bodySmall?.color,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: -0.1,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
               Container(
                 margin: const EdgeInsets.symmetric(horizontal: 16),
                 decoration: BoxDecoration(
@@ -517,8 +530,6 @@ class SettingsScreen extends StatelessWidget {
                   children: [
                     _buildSwipeDirectionRow(
                       context,
-                      'Swipe Up',
-                      Icons.arrow_upward_rounded,
                       model.SwipeDirection.up,
                       categories,
                       categoryProvider,
@@ -527,8 +538,6 @@ class SettingsScreen extends StatelessWidget {
                     _buildDivider(context),
                     _buildSwipeDirectionRow(
                       context,
-                      'Swipe Down',
-                      Icons.arrow_downward_rounded,
                       model.SwipeDirection.down,
                       categories,
                       categoryProvider,
@@ -536,8 +545,6 @@ class SettingsScreen extends StatelessWidget {
                     _buildDivider(context),
                     _buildSwipeDirectionRow(
                       context,
-                      'Swipe Left',
-                      Icons.arrow_back_rounded,
                       model.SwipeDirection.left,
                       categories,
                       categoryProvider,
@@ -545,9 +552,78 @@ class SettingsScreen extends StatelessWidget {
                     _buildDivider(context),
                     _buildSwipeDirectionRow(
                       context,
-                      'Swipe Right',
-                      Icons.arrow_forward_rounded,
                       model.SwipeDirection.right,
+                      categories,
+                      categoryProvider,
+                      isLast: true,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // Corner Directions Section
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Text(
+                  'CORNER DIRECTIONS',
+                  style: theme.textTheme.labelLarge?.copyWith(
+                    color: theme.textTheme.bodySmall?.color,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: -0.1,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Container(
+                margin: const EdgeInsets.symmetric(horizontal: 16),
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF1C1C1E) : Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: isDark
+                      ? Border.all(
+                          color: const Color(0xFF38383A).withOpacity(0.5),
+                          width: 0.5,
+                        )
+                      : null,
+                  boxShadow: isDark
+                      ? null
+                      : [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.05),
+                            blurRadius: 3,
+                            offset: const Offset(0, 1),
+                          ),
+                        ],
+                ),
+                child: Column(
+                  children: [
+                    _buildSwipeDirectionRow(
+                      context,
+                      model.SwipeDirection.topLeft,
+                      categories,
+                      categoryProvider,
+                      isFirst: true,
+                    ),
+                    _buildDivider(context),
+                    _buildSwipeDirectionRow(
+                      context,
+                      model.SwipeDirection.topRight,
+                      categories,
+                      categoryProvider,
+                    ),
+                    _buildDivider(context),
+                    _buildSwipeDirectionRow(
+                      context,
+                      model.SwipeDirection.bottomLeft,
+                      categories,
+                      categoryProvider,
+                    ),
+                    _buildDivider(context),
+                    _buildSwipeDirectionRow(
+                      context,
+                      model.SwipeDirection.bottomRight,
                       categories,
                       categoryProvider,
                       isLast: true,
@@ -597,8 +673,6 @@ class SettingsScreen extends StatelessWidget {
   /// iOS-style row for swipe direction within grouped card
   Widget _buildSwipeDirectionRow(
     BuildContext context,
-    String title,
-    IconData icon,
     model.SwipeDirection direction,
     List<model.Category> categories,
     CategoryProvider categoryProvider, {
@@ -606,24 +680,23 @@ class SettingsScreen extends StatelessWidget {
     bool isLast = false,
   }) {
     final theme = Theme.of(context);
+    final title = _getDirectionDisplayName(direction);
+    final icon = _getDirectionIcon(direction);
     final categoryId = categoryProvider.getCategoryForSwipe(direction);
     final currentCategory = categoryId != null
         ? categoryProvider.getCategoryById(categoryId)
         : null;
-    final isDownDirection = direction == model.SwipeDirection.down;
 
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: isDownDirection
-            ? null // Disable tap for down direction
-            : () => _showCategoryPicker(
-                  context,
-                  title,
-                  direction,
-                  categories,
-                  categoryProvider,
-                ),
+        onTap: () => _showCategoryPicker(
+              context,
+              title,
+              direction,
+              categories,
+              categoryProvider,
+            ),
         borderRadius: BorderRadius.vertical(
           top: isFirst ? const Radius.circular(12) : Radius.zero,
           bottom: isLast ? const Radius.circular(12) : Radius.zero,
@@ -684,9 +757,9 @@ class SettingsScreen extends StatelessWidget {
                 ),
               ),
 
-              // iOS-style chevron or lock icon
+              // iOS-style chevron
               Icon(
-                isDownDirection ? Icons.lock_outline : Icons.chevron_right,
+                Icons.chevron_right,
                 color: theme.textTheme.bodySmall?.color,
                 size: 20,
               ),
@@ -705,15 +778,8 @@ class SettingsScreen extends StatelessWidget {
     List<model.Category> categories,
     CategoryProvider categoryProvider,
   ) {
-    // Don't allow changing down swipe (reserved for "Other")
-    if (direction == model.SwipeDirection.down) {
-      return;
-    }
-
-    // Filter out "Other" category for non-down directions
-    final selectableCategories = categories
-        .where((c) => c.name.toLowerCase() != 'other')
-        .toList();
+    // All categories are selectable for all directions
+    final selectableCategories = categories;
 
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
@@ -931,6 +997,36 @@ class SettingsScreen extends StatelessWidget {
         return 'Swipe Left';
       case model.SwipeDirection.right:
         return 'Swipe Right';
+      case model.SwipeDirection.topLeft:
+        return 'Top-Left Corner';
+      case model.SwipeDirection.topRight:
+        return 'Top-Right Corner';
+      case model.SwipeDirection.bottomLeft:
+        return 'Bottom-Left Corner';
+      case model.SwipeDirection.bottomRight:
+        return 'Bottom-Right Corner';
+    }
+  }
+
+  /// Get icon for swipe direction
+  IconData _getDirectionIcon(model.SwipeDirection direction) {
+    switch (direction) {
+      case model.SwipeDirection.up:
+        return Icons.arrow_upward_rounded;
+      case model.SwipeDirection.down:
+        return Icons.arrow_downward_rounded;
+      case model.SwipeDirection.left:
+        return Icons.arrow_back_rounded;
+      case model.SwipeDirection.right:
+        return Icons.arrow_forward_rounded;
+      case model.SwipeDirection.topLeft:
+        return Icons.north_west;
+      case model.SwipeDirection.topRight:
+        return Icons.north_east;
+      case model.SwipeDirection.bottomLeft:
+        return Icons.south_west;
+      case model.SwipeDirection.bottomRight:
+        return Icons.south_east;
     }
   }
 
