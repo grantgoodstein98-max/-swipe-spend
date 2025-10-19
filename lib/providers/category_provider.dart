@@ -130,8 +130,18 @@ class CategoryProvider extends ChangeNotifier {
   }
 
   /// Unmap a swipe direction
+  /// Cannot unmap the direction assigned to "Other" category
   Future<void> unmapSwipeDirection(model.SwipeDirection direction) async {
     try {
+      // Check if this direction is mapped to the "Other" category
+      final categoryId = _swipeMappings[direction];
+      if (categoryId != null) {
+        final category = getCategoryById(categoryId);
+        if (category != null && category.name.toLowerCase() == 'other') {
+          throw Exception('Cannot unmap the direction assigned to the Other category');
+        }
+      }
+
       _swipeMappings.remove(direction);
       await _categoryService.saveSwipeMappings(_swipeMappings);
       notifyListeners();

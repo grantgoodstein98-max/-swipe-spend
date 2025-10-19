@@ -130,14 +130,14 @@ class Category {
     return {
       // Main directions
       SwipeDirection.up: '1',            // Food
-      SwipeDirection.down: '2',          // Transport
+      SwipeDirection.down: '8',          // Other (locked - cannot be unmapped)
       SwipeDirection.left: '3',          // Shopping
       SwipeDirection.right: '4',         // Entertainment
       // Corner directions
       SwipeDirection.topLeft: '5',       // Bills
       SwipeDirection.topRight: '6',      // Health
       SwipeDirection.bottomLeft: '7',    // Home
-      SwipeDirection.bottomRight: '8',   // Other
+      SwipeDirection.bottomRight: '2',   // Transport
     };
   }
 }
