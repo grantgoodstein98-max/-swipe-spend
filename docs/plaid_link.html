@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plaid Link</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #f5f5f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .loading {
+            text-align: center;
+        }
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="loading">
+        <div class="spinner"></div>
+        <p>Loading Plaid Link...</p>
+    </div>
+
+    <!-- Plaid Link SDK -->
+    <script src="https://cdn.plaid.com/link/v2/stable/link-initialize.js"></script>
+
+    <script>
+        console.log('🔷 Plaid Link page loaded');
+
+        // Listen for messages from parent Flutter app
+        window.addEventListener('message', function(event) {
+            console.log('📨 Received message:', event.data);
+
+            if (event.data.type === 'OPEN_PLAID_LINK') {
+                const linkToken = event.data.linkToken;
+                console.log('🔑 Opening Plaid Link with token:', linkToken);
+
+                try {
+                    // Create Plaid Link handler
+                    const handler = Plaid.create({
+                        token: linkToken,
+                        onSuccess: function(publicToken, metadata) {
+                            console.log('✅ Plaid Link Success!');
+                            console.log('   Public Token:', publicToken);
+                            console.log('   Metadata:', metadata);
+
+                            // Send success message back to Flutter
+                            window.parent.postMessage({
+                                type: 'PLAID_SUCCESS',
+                                publicToken: publicToken,
+                                metadata: {
+                                    institution: {
+                                        name: metadata.institution.name,
+                                        institution_id: metadata.institution.institution_id
+                                    }
+                                }
+                            }, '*');
+                        },
+                        onExit: function(err, metadata) {
+                            console.log('🚪 Plaid Link exited');
+
+                            if (err) {
+                                console.error('❌ Plaid Link Error:', err);
+                                window.parent.postMessage({
+                                    type: 'PLAID_ERROR',
+                                    error: err.error_message || err.display_message || 'Unknown error'
+                                }, '*');
+                            } else {
+                                console.log('ℹ️  User closed Plaid Link');
+                                window.parent.postMessage({
+                                    type: 'PLAID_EXIT',
+                                    metadata: metadata
+                                }, '*');
+                            }
+                        },
+                        onEvent: function(eventName, metadata) {
+                            console.log('📊 Plaid Event:', eventName, metadata);
+                        }
+                    });
+
+                    // Open Plaid Link
+                    handler.open();
+                    console.log('🚀 Plaid Link opened');
+
+                } catch (error) {
+                    console.error('❌ Error creating Plaid Link:', error);
+                    window.parent.postMessage({
+                        type: 'PLAID_ERROR',
+                        error: error.message || 'Failed to create Plaid Link'
+                    }, '*');
+                }
+            }
+        });
+
+        // Notify parent that we're ready
+        console.log('📢 Sending READY message to parent');
+        window.parent.postMessage({ type: 'PLAID_READY' }, '*');
+    </script>
+</body>
+</html>
