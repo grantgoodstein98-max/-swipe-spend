@@ -79,9 +79,8 @@ class PlaidService {
   /// Create a link token via backend server
   Future<String?> _createLinkToken() async {
     try {
-      // Use deployed backend on production web, localhost for development
-      final isProduction = kIsWeb && const bool.fromEnvironment('dart.vm.product');
-      final backendUrl = isProduction
+      // Use deployed backend for web, localhost only for non-web
+      final backendUrl = kIsWeb
           ? 'https://swipe-spend-backend.onrender.com'
           : 'http://localhost:3000';
       final endpoint = '/api/plaid/create_link_token';
