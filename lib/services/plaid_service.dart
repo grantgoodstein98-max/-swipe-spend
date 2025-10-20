@@ -82,9 +82,9 @@ class PlaidService {
       // Use deployed backend on production web, localhost for development
       final isProduction = kIsWeb && const bool.fromEnvironment('dart.vm.product');
       final backendUrl = isProduction
-          ? 'https://backend-grants-projects-45de1bc8.vercel.app'
+          ? 'https://swipe-spend-backend.onrender.com'
           : 'http://localhost:3000';
-      final endpoint = isProduction ? '/api/create-link-token' : '/api/plaid/create_link_token';
+      final endpoint = '/api/plaid/create_link_token';
 
       final response = await http.post(
         Uri.parse('$backendUrl$endpoint'),
