@@ -303,63 +303,146 @@ class SettingsScreen extends StatelessWidget {
                           ),
                         ],
                 ),
-                child: Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const ImportTransactionsScreen(),
-                        ),
-                      );
-                    },
-                    borderRadius: BorderRadius.circular(12),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 12,
-                      ),
-                      child: Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: theme.colorScheme.primary.withOpacity(0.1),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Icon(
-                              Icons.upload_file,
-                              color: theme.colorScheme.primary,
-                              size: 22,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Import Transactions',
-                                  style: theme.textTheme.bodyLarge,
+                child: Consumer<PlaidProvider>(
+                  builder: (context, plaidProvider, child) {
+                    return Column(
+                      children: [
+                        // Sync Bank Data button (only show if bank is connected)
+                        if (plaidProvider.isLinked) ...[
+                          Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              onTap: plaidProvider.isLoading
+                                  ? null
+                                  : () => _syncBankData(context, plaidProvider),
+                              borderRadius: const BorderRadius.vertical(
+                                top: Radius.circular(12),
+                              ),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 16,
+                                  vertical: 12,
                                 ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  'From CSV or Excel file',
-                                  style: theme.textTheme.bodySmall,
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.all(8),
+                                      decoration: BoxDecoration(
+                                        color: Colors.green.withOpacity(0.1),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: plaidProvider.isLoading
+                                          ? const SizedBox(
+                                              width: 22,
+                                              height: 22,
+                                              child: CircularProgressIndicator(
+                                                strokeWidth: 2,
+                                                valueColor: AlwaysStoppedAnimation<Color>(Colors.green),
+                                              ),
+                                            )
+                                          : const Icon(
+                                              Icons.sync,
+                                              color: Colors.green,
+                                              size: 22,
+                                            ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            plaidProvider.linkedInstitutionName ?? 'Bank',
+                                            style: theme.textTheme.bodyLarge?.copyWith(
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 2),
+                                          Text(
+                                            plaidProvider.isLoading ? 'Syncing...' : 'Sync bank data',
+                                            style: theme.textTheme.bodySmall,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    Icon(
+                                      Icons.chevron_right,
+                                      color: theme.textTheme.bodySmall?.color,
+                                      size: 20,
+                                    ),
+                                  ],
                                 ),
-                              ],
+                              ),
                             ),
                           ),
-                          Icon(
-                            Icons.chevron_right,
-                            color: theme.textTheme.bodySmall?.color,
-                            size: 20,
-                          ),
+                          _buildDivider(context),
                         ],
-                      ),
-                    ),
-                  ),
+                        // Import Transactions button
+                        Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const ImportTransactionsScreen(),
+                                ),
+                              );
+                            },
+                            borderRadius: plaidProvider.isLinked
+                                ? const BorderRadius.vertical(
+                                    bottom: Radius.circular(12),
+                                  )
+                                : BorderRadius.circular(12),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 12,
+                              ),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      color: theme.colorScheme.primary.withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Icon(
+                                      Icons.upload_file,
+                                      color: theme.colorScheme.primary,
+                                      size: 22,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'Import Transactions',
+                                          style: theme.textTheme.bodyLarge,
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          'From CSV or Excel file',
+                                          style: theme.textTheme.bodySmall,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  Icon(
+                                    Icons.chevron_right,
+                                    color: theme.textTheme.bodySmall?.color,
+                                    size: 20,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
                 ),
               ),
 
@@ -1288,5 +1371,52 @@ class SettingsScreen extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  /// Sync bank data from Plaid
+  Future<void> _syncBankData(BuildContext context, PlaidProvider plaidProvider) async {
+    try {
+      final transactions = await plaidProvider.syncTransactions();
+
+      if (!context.mounted) return;
+
+      if (transactions.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('No new transactions found'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+        return;
+      }
+
+      // Import transactions directly
+      final transactionProvider = context.read<TransactionProvider>();
+      final imported = await transactionProvider.importTransactions(transactions);
+
+      if (!context.mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Successfully synced $imported transaction${imported != 1 ? 's' : ''}',
+            style: const TextStyle(fontWeight: FontWeight.w600, color: Colors.white),
+          ),
+          backgroundColor: Colors.green,
+          duration: const Duration(seconds: 3),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } catch (e) {
+      if (!context.mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error syncing: $e'),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    }
   }
 }
