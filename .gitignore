@@ -54,3 +54,4 @@ lib/config/api_config.dart
 
 # Temporary files
 nul
+backend/node_modules/
