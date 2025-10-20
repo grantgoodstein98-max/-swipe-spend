@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart' show debugPrint, kIsWeb;
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'dart:async';
 import 'package:plaid_flutter/plaid_flutter.dart';
 import '../models/transaction.dart';
 import 'plaid_web_service.dart' if (dart.library.io) 'plaid_web_service_stub.dart';
@@ -85,6 +86,8 @@ class PlaidService {
           : 'http://localhost:3000';
       final endpoint = '/api/plaid/create_link_token';
 
+      debugPrint('🔗 Calling backend: $backendUrl$endpoint');
+
       final response = await http.post(
         Uri.parse('$backendUrl$endpoint'),
         headers: {
@@ -93,7 +96,16 @@ class PlaidService {
         body: jsonEncode({
           'userId': 'user-${DateTime.now().millisecondsSinceEpoch}',
         }),
+      ).timeout(
+        const Duration(seconds: 30),
+        onTimeout: () {
+          debugPrint('⏱️ Request timed out after 30 seconds');
+          throw TimeoutException('Backend request timed out');
+        },
       );
+
+      debugPrint('📡 Response status: ${response.statusCode}');
+      debugPrint('📡 Response body: ${response.body}');
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -104,8 +116,9 @@ class PlaidService {
         debugPrint('   Response: ${response.body}');
         return null;
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
       debugPrint('❌ Error creating link token: $e');
+      debugPrint('   Stack trace: $stackTrace');
       return null;
     }
   }
