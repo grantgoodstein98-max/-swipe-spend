@@ -26,9 +26,23 @@ class PlaidProvider extends ChangeNotifier {
       final result = await _plaidService.openPlaidLink();
 
       if (result != null) {
-        final publicToken = result['publicToken'] as String;
-        final metadata = result['metadata'] as Map<String, dynamic>;
-        final institutionName = metadata['institution']?['name'] as String? ?? 'Bank';
+        // Handle dynamic type from web/mobile Plaid Link
+        final resultMap = result is Map<String, dynamic>
+            ? result
+            : Map<String, dynamic>.from(result as Map);
+
+        final publicToken = resultMap['publicToken'] as String;
+        final metadataRaw = resultMap['metadata'];
+        final metadata = metadataRaw is Map<String, dynamic>
+            ? metadataRaw
+            : Map<String, dynamic>.from(metadataRaw as Map);
+
+        final institutionRaw = metadata['institution'];
+        final institution = institutionRaw is Map<String, dynamic>
+            ? institutionRaw
+            : (institutionRaw != null ? Map<String, dynamic>.from(institutionRaw as Map) : null);
+
+        final institutionName = institution?['name'] as String? ?? 'Bank';
 
         debugPrint('✅ Plaid Link Success!');
         debugPrint('   Public Token: ${publicToken.substring(0, 20)}...');
