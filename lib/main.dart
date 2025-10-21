@@ -9,6 +9,7 @@ import 'providers/theme_provider.dart';
 import 'providers/chat_provider.dart';
 import 'providers/guest_mode_provider.dart';
 import 'providers/plaid_provider.dart';
+import 'providers/plaid_provider_multi_bank.dart';
 import 'widgets/auth_wrapper.dart';
 import 'screens/home_screen.dart';
 
@@ -37,6 +38,7 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => BudgetProvider()),
         ChangeNotifierProvider(create: (_) => ChatProvider()),
         ChangeNotifierProvider(create: (_) => PlaidProvider()),
+        ChangeNotifierProvider(create: (_) => PlaidProviderMultiBank()),
       ],
       child: Consumer<ThemeProvider>(
         builder: (context, themeProvider, child) {

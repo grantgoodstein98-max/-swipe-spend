@@ -10,6 +10,8 @@ class Transaction {
   final String? merchantName;
   String? category;
   bool isCategorized;
+  final String? institutionId; // Which bank this transaction came from
+  final String? institutionName; // Bank display name
 
   Transaction({
     required this.id,
@@ -20,6 +22,8 @@ class Transaction {
     this.merchantName,
     this.category,
     this.isCategorized = false,
+    this.institutionId,
+    this.institutionName,
   });
 
   /// Convert Transaction to JSON for persistence
@@ -33,6 +37,8 @@ class Transaction {
       'merchantName': merchantName,
       'category': category,
       'isCategorized': isCategorized,
+      'institutionId': institutionId,
+      'institutionName': institutionName,
     };
   }
 
@@ -47,6 +53,8 @@ class Transaction {
       merchantName: json['merchantName'] as String?,
       category: json['category'] as String?,
       isCategorized: json['isCategorized'] as bool? ?? false,
+      institutionId: json['institutionId'] as String?,
+      institutionName: json['institutionName'] as String?,
     );
   }
 

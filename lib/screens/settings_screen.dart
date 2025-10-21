@@ -6,9 +6,11 @@ import '../providers/category_provider.dart';
 import '../providers/theme_provider.dart';
 import '../providers/guest_mode_provider.dart';
 import '../providers/plaid_provider.dart';
+import '../providers/plaid_provider_multi_bank.dart';
 import '../providers/transaction_provider.dart';
 import '../widgets/add_category_dialog.dart';
 import 'import_transactions_screen.dart';
+import 'connected_banks_screen.dart';
 import '../services/auth_service.dart';
 
 /// Screen for managing categories and app settings
@@ -377,6 +379,75 @@ class SettingsScreen extends StatelessWidget {
                           ),
                           _buildDivider(context),
                         ],
+                        // Connected Banks button
+                        Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const ConnectedBanksScreen(),
+                                ),
+                              );
+                            },
+                            borderRadius: const BorderRadius.vertical(
+                              top: Radius.circular(0),
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 12,
+                              ),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      color: Colors.green.withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: const Icon(
+                                      Icons.account_balance,
+                                      color: Colors.green,
+                                      size: 22,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'Connected Banks',
+                                          style: theme.textTheme.bodyLarge,
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Consumer<PlaidProviderMultiBank>(
+                                          builder: (context, multiBankProvider, _) {
+                                            final bankCount = multiBankProvider.connectedBankCount;
+                                            return Text(
+                                              bankCount == 0
+                                                  ? 'No banks connected'
+                                                  : '$bankCount bank${bankCount != 1 ? 's' : ''} connected',
+                                              style: theme.textTheme.bodySmall,
+                                            );
+                                          },
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  Icon(
+                                    Icons.chevron_right,
+                                    color: theme.textTheme.bodySmall?.color,
+                                    size: 20,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                        _buildDivider(context),
                         // Import Transactions button
                         Material(
                           color: Colors.transparent,
