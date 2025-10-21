@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../models/transaction.dart';
 import '../models/category.dart' as model;
@@ -30,6 +31,39 @@ class TransactionCard extends StatelessWidget {
     } catch (e) {
       return null;
     }
+  }
+
+  IconData _getMerchantIcon(String merchantName) {
+    final name = merchantName.toLowerCase();
+    if (name.contains('amazon') || name.contains('walmart') || name.contains('target')) {
+      return Icons.shopping_bag_rounded;
+    } else if (name.contains('restaurant') || name.contains('cafe') || name.contains('pizza') || name.contains('food')) {
+      return Icons.restaurant_rounded;
+    } else if (name.contains('gas') || name.contains('shell') || name.contains('chevron')) {
+      return Icons.local_gas_station_rounded;
+    } else if (name.contains('uber') || name.contains('lyft') || name.contains('taxi')) {
+      return Icons.directions_car_rounded;
+    } else if (name.contains('netflix') || name.contains('spotify') || name.contains('subscription')) {
+      return Icons.subscriptions_rounded;
+    } else if (name.contains('bank') || name.contains('atm') || name.contains('transfer')) {
+      return Icons.account_balance_rounded;
+    } else if (name.contains('health') || name.contains('pharmacy') || name.contains('medical')) {
+      return Icons.local_hospital_rounded;
+    }
+    return Icons.store_rounded;
+  }
+
+  Color _getMerchantIconColor(String merchantName) {
+    final name = merchantName.toLowerCase();
+    if (name.contains('amazon')) return const Color(0xFFFF9900);
+    if (name.contains('walmart')) return const Color(0xFF0071CE);
+    if (name.contains('target')) return const Color(0xFFCC0000);
+    if (name.contains('starbucks')) return const Color(0xFF00704A);
+    if (name.contains('mcdonald')) return const Color(0xFFFFC72C);
+    if (name.contains('netflix')) return const Color(0xFFE50914);
+    if (name.contains('spotify')) return const Color(0xFF1DB954);
+    if (name.contains('uber')) return const Color(0xFF000000);
+    return const Color(0xFF007AFF); // Default blue
   }
 
   @override
@@ -111,93 +145,188 @@ class TransactionCard extends StatelessWidget {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
+    final merchantName = transaction.merchantName ?? transaction.name;
+    final merchantIcon = _getMerchantIcon(merchantName);
+    final merchantColor = _getMerchantIconColor(merchantName);
+
     return Stack(
         children: [
-          // Main card with Apple-style design
+          // Main card with enhanced design
           Container(
             decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF1C1C1E) : Colors.white,
-              borderRadius: BorderRadius.circular(16),
+              gradient: isDark
+                  ? LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        const Color(0xFF1C1C1E),
+                        const Color(0xFF2C2C2E),
+                      ],
+                    )
+                  : LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        Colors.white,
+                        Colors.grey.shade50,
+                      ],
+                    ),
+              borderRadius: BorderRadius.circular(20),
               border: Border.all(
                 color: isDark
                     ? const Color(0xFF38383A).withOpacity(0.5)
-                    : Colors.black.withOpacity(0.08),
-                width: isDark ? 0.5 : 1,
+                    : Colors.black.withOpacity(0.06),
+                width: isDark ? 0.5 : 1.5,
               ),
               boxShadow: isDark
-                  ? null
+                  ? [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.3),
+                        blurRadius: 20,
+                        offset: const Offset(0, 8),
+                      ),
+                    ]
                   : [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.08),
-                        blurRadius: 12,
-                        offset: const Offset(0, 4),
+                        color: Colors.black.withOpacity(0.12),
+                        blurRadius: 24,
+                        offset: const Offset(0, 8),
+                      ),
+                      BoxShadow(
+                        color: merchantColor.withOpacity(0.1),
+                        blurRadius: 40,
+                        offset: const Offset(0, 12),
                       ),
                     ],
             ),
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(14),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
-              mainAxisSize: MainAxisSize.max,
+              mainAxisSize: MainAxisSize.min,
               children: [
-                // Merchant icon
+                // Merchant icon with gradient background
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: theme.colorScheme.primary.withOpacity(0.1),
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        merchantColor,
+                        merchantColor.withOpacity(0.7),
+                      ],
+                    ),
                     shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: merchantColor.withOpacity(0.4),
+                        blurRadius: 12,
+                        spreadRadius: 1,
+                      ),
+                    ],
                   ),
                   child: Icon(
-                    Icons.store_rounded,
-                    size: 28,
-                    color: theme.colorScheme.primary,
+                    merchantIcon,
+                    size: 26,
+                    color: Colors.white,
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 6),
 
-                // Transaction name/merchant - Apple headline style
+                // Transaction name/merchant
                 Text(
-                  transaction.merchantName ?? transaction.name,
-                  style: theme.textTheme.headlineMedium?.copyWith(fontSize: 15),
+                  merchantName,
+                  style: theme.textTheme.headlineMedium?.copyWith(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: -0.3,
+                  ),
                   textAlign: TextAlign.center,
-                  maxLines: 2,
+                  maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: 5),
 
-                // Amount - Large, bold, monospaced
-                Text(
-                  transaction.formattedAmount,
-                  style: theme.textTheme.displaySmall?.copyWith(
-                        color: theme.colorScheme.primary,
-                        fontSize: 18,
-                        fontFeatures: [const FontFeature.tabularFigures()],
-                      ),
-                ),
-                const SizedBox(height: 6),
-
-                // Date - Subtle badge
+                // Amount - Larger and more prominent
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.primary.withOpacity(0.08),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    transaction.formattedAmount,
+                    style: theme.textTheme.displaySmall?.copyWith(
+                          color: theme.colorScheme.primary,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          fontFeatures: [const FontFeature.tabularFigures()],
+                        ),
+                  ),
+                ),
+                const SizedBox(height: 4),
+
+                // Date and time badge
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
                   decoration: BoxDecoration(
                     color: isDark
                         ? const Color(0xFF2C2C2E)
                         : const Color(0xFFF2F2F7),
-                    borderRadius: BorderRadius.circular(6),
+                    borderRadius: BorderRadius.circular(4),
                   ),
-                  child: Text(
-                    transaction.formattedDate,
-                    style: theme.textTheme.labelSmall,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.calendar_today_rounded,
+                        size: 8,
+                        color: theme.textTheme.labelSmall?.color,
+                      ),
+                      const SizedBox(width: 3),
+                      Text(
+                        transaction.formattedDate,
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          fontWeight: FontWeight.w500,
+                          fontSize: 8,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: 3),
 
-                // Swipe instruction
-                Text(
-                  'Swipe to categorize',
-                  style: theme.textTheme.labelSmall?.copyWith(
-                        fontStyle: FontStyle.italic,
-                        fontSize: 10,
+                // Swipe instruction with icon
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: merchantColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(4),
+                    border: Border.all(
+                      color: merchantColor.withOpacity(0.3),
+                      width: 0.8,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.swipe_rounded,
+                        size: 9,
+                        color: merchantColor,
                       ),
+                      const SizedBox(width: 2),
+                      Text(
+                        'Swipe to categorize',
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          fontStyle: FontStyle.italic,
+                          fontSize: 8,
+                          fontWeight: FontWeight.w500,
+                          color: merchantColor,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),

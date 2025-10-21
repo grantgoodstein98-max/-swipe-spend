@@ -20,13 +20,54 @@ class SwipeScreen extends StatefulWidget {
 
 class _SwipeScreenState extends State<SwipeScreen> {
   final CardSwiperController _controller = CardSwiperController();
+  final ScrollController _categoryScrollController = ScrollController();
   bool _showCategorizedList = false;
   int _currentCardIndex = 0;
+  bool _showMotivationalHeader = true;
+  bool _canScrollLeft = false;
+  bool _canScrollRight = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _categoryScrollController.addListener(_updateScrollButtons);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _updateScrollButtons();
+    });
+  }
 
   @override
   void dispose() {
     _controller.dispose();
+    _categoryScrollController.dispose();
     super.dispose();
+  }
+
+  void _updateScrollButtons() {
+    if (!mounted) return;
+    setState(() {
+      _canScrollLeft = _categoryScrollController.hasClients &&
+                       _categoryScrollController.offset > 0;
+      _canScrollRight = _categoryScrollController.hasClients &&
+                        _categoryScrollController.offset <
+                        _categoryScrollController.position.maxScrollExtent;
+    });
+  }
+
+  void _scrollLeft() {
+    _categoryScrollController.animateTo(
+      _categoryScrollController.offset - 200,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+    );
+  }
+
+  void _scrollRight() {
+    _categoryScrollController.animateTo(
+      _categoryScrollController.offset + 200,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+    );
   }
 
   @override
@@ -98,10 +139,354 @@ class _SwipeScreenState extends State<SwipeScreen> {
             );
           }
 
+          // Calculate stats
+          final now = DateTime.now();
+          final todayCategorized = categorizedTransactions.where((t) {
+            return t.date.year == now.year &&
+                   t.date.month == now.month &&
+                   t.date.day == now.day;
+          }).length;
+
+          final totalTransactions = transactionProvider.transactions.length;
+          final progress = totalTransactions > 0
+              ? categorizedTransactions.length / totalTransactions
+              : 0.0;
+
           return Column(
             children: [
-              // Categorized transactions list at top
+              // Motivational Header
+              if (uncategorizedTransactions.isNotEmpty && _showMotivationalHeader)
+                Container(
+                  margin: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+                  padding: const EdgeInsets.all(15),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        theme.colorScheme.primary.withOpacity(0.1),
+                        theme.colorScheme.secondary.withOpacity(0.1),
+                      ],
+                    ),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: theme.colorScheme.primary.withOpacity(0.2),
+                      width: 1,
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  'Let\'s organize your spending! 💸',
+                                  style: theme.textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  '${uncategorizedTransactions.length} transaction${uncategorizedTransactions.length != 1 ? 's' : ''} waiting',
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.primary.withOpacity(0.15),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              '${uncategorizedTransactions.length} left',
+                              style: theme.textTheme.labelSmall?.copyWith(
+                                color: theme.colorScheme.primary,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          InkWell(
+                            onTap: () {
+                              setState(() {
+                                _showMotivationalHeader = false;
+                              });
+                            },
+                            child: Icon(
+                              Icons.close,
+                              size: 18,
+                              color: theme.textTheme.bodySmall?.color,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: LinearProgressIndicator(
+                          value: progress,
+                          minHeight: 6,
+                          backgroundColor: theme.colorScheme.primary.withOpacity(0.1),
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            theme.colorScheme.primary,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        '${(progress * 100).toStringAsFixed(0)}% complete',
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: theme.colorScheme.primary,
+                          fontWeight: FontWeight.w500,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+              // Category Chips Section
               if (categorizedTransactions.isNotEmpty)
+                Container(
+                  margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                  padding: const EdgeInsets.all(15),
+                  decoration: BoxDecoration(
+                    color: theme.cardTheme.color,
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: theme.brightness == Brightness.light
+                        ? [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.05),
+                              blurRadius: 3,
+                              offset: const Offset(0, 1),
+                            ),
+                          ]
+                        : null,
+                    border: theme.brightness == Brightness.dark
+                        ? Border.all(
+                            color: const Color(0xFF38383A).withOpacity(0.5),
+                            width: 0.5,
+                          )
+                        : null,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Categorized',
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 14,
+                            ),
+                          ),
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                                decoration: BoxDecoration(
+                                  color: Colors.orange.withOpacity(0.2),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Text(
+                                  '🔥 3',
+                                  style: theme.textTheme.labelSmall?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 11,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                                decoration: BoxDecoration(
+                                  color: theme.colorScheme.primary.withOpacity(0.15),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Text(
+                                  '⚡ $todayCategorized',
+                                  style: theme.textTheme.labelSmall?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 11,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              InkWell(
+                                onTap: () {
+                                  setState(() {
+                                    _showCategorizedList = !_showCategorizedList;
+                                  });
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: theme.colorScheme.secondary.withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        '${categorizedTransactions.length} items',
+                                        style: theme.textTheme.labelSmall?.copyWith(
+                                          color: theme.colorScheme.secondary,
+                                          fontWeight: FontWeight.w600,
+                                          fontSize: 11,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Icon(
+                                        _showCategorizedList
+                                            ? Icons.expand_less
+                                            : Icons.chevron_right,
+                                        size: 16,
+                                        color: theme.colorScheme.secondary,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      Row(
+                        children: [
+                          if (_canScrollLeft)
+                            InkWell(
+                              onTap: _scrollLeft,
+                              child: Container(
+                                padding: const EdgeInsets.all(4),
+                                decoration: BoxDecoration(
+                                  color: theme.colorScheme.primary.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Icon(
+                                  Icons.chevron_left,
+                                  size: 20,
+                                  color: theme.colorScheme.primary,
+                                ),
+                              ),
+                            )
+                          else
+                            const SizedBox(width: 28),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: SizedBox(
+                              height: 50,
+                              child: ListView.builder(
+                                controller: _categoryScrollController,
+                                scrollDirection: Axis.horizontal,
+                                itemCount: categoryTotals.keys.length,
+                                itemBuilder: (context, index) {
+                                  final categoryId = categoryTotals.keys.elementAt(index);
+                                  final total = categoryTotals[categoryId] ?? 0;
+                                  final category = categories.firstWhere((c) => c.id == categoryId);
+
+                                  if (total == 0) return const SizedBox.shrink();
+
+                                  return Container(
+                                    width: 60,
+                                    margin: const EdgeInsets.only(right: 8),
+                                    padding: const EdgeInsets.all(6),
+                                    decoration: BoxDecoration(
+                                      gradient: LinearGradient(
+                                        begin: Alignment.topLeft,
+                                        end: Alignment.bottomRight,
+                                        colors: [
+                                          category.color.withOpacity(0.15),
+                                          category.color.withOpacity(0.05),
+                                        ],
+                                      ),
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(
+                                        color: category.color.withOpacity(0.3),
+                                        width: 1,
+                                      ),
+                                    ),
+                                    child: Column(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          category.icon,
+                                          color: category.color,
+                                          size: 16,
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Flexible(
+                                          child: Text(
+                                            '\$${total.toStringAsFixed(0)}',
+                                            style: theme.textTheme.titleSmall?.copyWith(
+                                              fontWeight: FontWeight.bold,
+                                              color: category.color,
+                                              fontSize: 10,
+                                            ),
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                        Flexible(
+                                          child: Text(
+                                            category.name,
+                                            style: theme.textTheme.labelSmall?.copyWith(
+                                              fontSize: 8,
+                                            ),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          if (_canScrollRight)
+                            InkWell(
+                              onTap: _scrollRight,
+                              child: Container(
+                                padding: const EdgeInsets.all(4),
+                                decoration: BoxDecoration(
+                                  color: theme.colorScheme.primary.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Icon(
+                                  Icons.chevron_right,
+                                  size: 20,
+                                  color: theme.colorScheme.primary,
+                                ),
+                              ),
+                            )
+                          else
+                            const SizedBox(width: 28),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+
+              // Categorized transactions list (expandable)
+              if (categorizedTransactions.isNotEmpty && _showCategorizedList)
                 Container(
                   margin: const EdgeInsets.fromLTRB(16, 8, 16, 16),
                   decoration: BoxDecoration(
