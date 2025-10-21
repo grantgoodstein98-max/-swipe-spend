@@ -1,7 +1,5 @@
 {
   "public": true,
-  "buildCommand": "flutter build web --release",
-  "outputDirectory": "build/web",
   "headers": [
     {
       "source": "/(.*)",
@@ -11,6 +9,12 @@
           "value": "*"
         }
       ]
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
     }
   ]
 }
