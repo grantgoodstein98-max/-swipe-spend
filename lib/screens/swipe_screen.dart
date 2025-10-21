@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_card_swiper/flutter_card_swiper.dart';
 import 'package:provider/provider.dart';
@@ -28,6 +29,9 @@ class _SwipeScreenState extends State<SwipeScreen> {
   bool _canScrollRight = false;
   double _lastHorizontalOffset = 0.0;
   double _lastVerticalOffset = 0.0;
+  // Track peak offsets in each direction to preserve diagonal intent
+  double _peakHorizontalOffset = 0.0;
+  double _peakVerticalOffset = 0.0;
 
   @override
   void initState() {
@@ -709,10 +713,22 @@ class _SwipeScreenState extends State<SwipeScreen> {
                               return const SizedBox.shrink();
                             }
 
-                            // Track offset for diagonal detection
+                            // Track offsets for diagonal detection
                             if (index == _currentCardIndex) {
                               _lastHorizontalOffset = horizontalOffsetPercentage.toDouble();
                               _lastVerticalOffset = verticalOffsetPercentage.toDouble();
+
+                              // Track peak offsets in each direction (preserving sign)
+                              // Update peak if current offset has greater absolute value
+                              final currentH = horizontalOffsetPercentage.toDouble();
+                              final currentV = verticalOffsetPercentage.toDouble();
+
+                              if (currentH.abs() > _peakHorizontalOffset.abs()) {
+                                _peakHorizontalOffset = currentH;
+                              }
+                              if (currentV.abs() > _peakVerticalOffset.abs()) {
+                                _peakVerticalOffset = currentV;
+                              }
                             }
 
                             final transaction = uncategorizedTransactions[index];
@@ -939,44 +955,55 @@ class _SwipeScreenState extends State<SwipeScreen> {
 
     final transaction = transactions[previousIndex];
 
-    // Map swipe direction to category, including diagonal detection
+    // Map swipe direction to category using offset-based diagonal detection
     model.SwipeDirection? swipeDirection;
 
-    // Threshold for considering a swipe diagonal (30% offset in both directions)
-    const diagonalThreshold = 0.3;
-    final absHorizontal = _lastHorizontalOffset.abs();
-    final absVertical = _lastVerticalOffset.abs();
-    final isDiagonal = absHorizontal > diagonalThreshold && absVertical > diagonalThreshold;
+    // Use angle-based 8-direction detection for fluid, natural feel
+    // Use peak offsets (which preserve sign and magnitude) from the swipe
+    // INVERT vertical axis: screen coords have +Y down, but we want +Y up for angles
+    // BOOST vertical sensitivity: users swipe quickly and release early, so vertical
+    // movement is smaller than horizontal. Multiply by 2.5x to make diagonals easier.
+    const verticalSensitivity = 2.5;
+    final adjustedVertical = -_peakVerticalOffset * verticalSensitivity;
+    final angleRad = atan2(adjustedVertical, _peakHorizontalOffset);
+    final angleDeg = angleRad * 180 / pi;
 
-    if (isDiagonal) {
-      // Detect diagonal swipes based on offset combination
-      if (_lastVerticalOffset < 0 && _lastHorizontalOffset > 0) {
-        swipeDirection = model.SwipeDirection.topRight; // Swipe up-right
-      } else if (_lastVerticalOffset < 0 && _lastHorizontalOffset < 0) {
-        swipeDirection = model.SwipeDirection.topLeft; // Swipe up-left
-      } else if (_lastVerticalOffset > 0 && _lastHorizontalOffset > 0) {
-        swipeDirection = model.SwipeDirection.bottomRight; // Swipe down-right
-      } else if (_lastVerticalOffset > 0 && _lastHorizontalOffset < 0) {
-        swipeDirection = model.SwipeDirection.bottomLeft; // Swipe down-left
-      }
+    // Normalize to 0-360 range (0° = right, 90° = up, 180° = left, 270° = down)
+    final normalizedAngle = (angleDeg + 360) % 360;
+
+    // Divide into 8 equal 45° slices, each centered on a direction
+    // After inverting Y: 0°=RIGHT, 90°=UP, 180°=LEFT, 270°=DOWN
+    // The atan2 function returns angles in standard mathematical orientation:
+    //   - 0° points right (+X axis)
+    //   - 90° points up (+Y axis, which we inverted to match "up on screen")
+    //   - 180° points left (-X axis)
+    //   - 270° points down (-Y axis, which we inverted to match "down on screen")
+    //
+    // 337.5-22.5° → RIGHT swipe (right, ~zero vertical)
+    // 22.5-67.5° → TOP-RIGHT swipe (right + upward on screen)
+    // 67.5-112.5° → UP swipe (~zero horizontal, upward on screen)
+    // 112.5-157.5° → TOP-LEFT swipe (left + upward on screen)
+    // 157.5-202.5° → LEFT swipe (left, ~zero vertical)
+    // 202.5-247.5° → BOTTOM-LEFT swipe (left + downward on screen)
+    // 247.5-292.5° → DOWN swipe (~zero horizontal, downward on screen)
+    // 292.5-337.5° → BOTTOM-RIGHT swipe (right + downward on screen)
+
+    if (normalizedAngle >= 337.5 || normalizedAngle < 22.5) {
+      swipeDirection = model.SwipeDirection.right;
+    } else if (normalizedAngle >= 22.5 && normalizedAngle < 67.5) {
+      swipeDirection = model.SwipeDirection.topRight;
+    } else if (normalizedAngle >= 67.5 && normalizedAngle < 112.5) {
+      swipeDirection = model.SwipeDirection.up;
+    } else if (normalizedAngle >= 112.5 && normalizedAngle < 157.5) {
+      swipeDirection = model.SwipeDirection.topLeft;
+    } else if (normalizedAngle >= 157.5 && normalizedAngle < 202.5) {
+      swipeDirection = model.SwipeDirection.left;
+    } else if (normalizedAngle >= 202.5 && normalizedAngle < 247.5) {
+      swipeDirection = model.SwipeDirection.bottomLeft;
+    } else if (normalizedAngle >= 247.5 && normalizedAngle < 292.5) {
+      swipeDirection = model.SwipeDirection.down;
     } else {
-      // Cardinal directions based on CardSwiper detection
-      switch (direction) {
-        case CardSwiperDirection.top:
-          swipeDirection = model.SwipeDirection.up;
-          break;
-        case CardSwiperDirection.bottom:
-          swipeDirection = model.SwipeDirection.down;
-          break;
-        case CardSwiperDirection.left:
-          swipeDirection = model.SwipeDirection.left;
-          break;
-        case CardSwiperDirection.right:
-          swipeDirection = model.SwipeDirection.right;
-          break;
-        default:
-          return false;
-      }
+      swipeDirection = model.SwipeDirection.bottomRight;
     }
 
     // Ensure we have a valid swipe direction
@@ -991,8 +1018,9 @@ class _SwipeScreenState extends State<SwipeScreen> {
     // Debug logging
     print('🔍 Swipe Debug:');
     print('   Direction: $direction -> $swipeDirection');
-    print('   Offsets: H=${_lastHorizontalOffset.toStringAsFixed(2)}, V=${_lastVerticalOffset.toStringAsFixed(2)}');
-    print('   Diagonal: $isDiagonal');
+    print('   Peak Offsets: H=${_peakHorizontalOffset.toStringAsFixed(2)}, V=${_peakVerticalOffset.toStringAsFixed(2)}');
+    print('   Final Offsets: H=${_lastHorizontalOffset.toStringAsFixed(2)}, V=${_lastVerticalOffset.toStringAsFixed(2)}');
+    print('   Angle: ${normalizedAngle.toStringAsFixed(1)}°');
     print('   Category ID: $categoryId');
     print('   Transaction: ${transaction.name}');
 
@@ -1016,6 +1044,12 @@ class _SwipeScreenState extends State<SwipeScreen> {
           ),
         );
       }
+
+      // Reset offset tracking for next card
+      _lastHorizontalOffset = 0.0;
+      _lastVerticalOffset = 0.0;
+      _peakHorizontalOffset = 0.0;
+      _peakVerticalOffset = 0.0;
 
       return true;
     }
