@@ -972,7 +972,8 @@ class _SwipeScreenState extends State<SwipeScreen> {
     // Normalize to 0-360 range (0° = right, 90° = up, 180° = left, 270° = down)
     final normalizedAngle = (angleDeg + 360) % 360;
 
-    // Divide into 8 equal 45° slices, each centered on a direction
+    // Cardinal directions get 60° ranges (±30° tolerance), diagonals get 30° ranges
+    // This gives more wiggle room for straight up/down/left/right swipes
     // After inverting Y: 0°=RIGHT, 90°=UP, 180°=LEFT, 270°=DOWN
     // The atan2 function returns angles in standard mathematical orientation:
     //   - 0° points right (+X axis)
@@ -980,28 +981,28 @@ class _SwipeScreenState extends State<SwipeScreen> {
     //   - 180° points left (-X axis)
     //   - 270° points down (-Y axis, which we inverted to match "down on screen")
     //
-    // 337.5-22.5° → RIGHT swipe (right, ~zero vertical)
-    // 22.5-67.5° → TOP-RIGHT swipe (right + upward on screen)
-    // 67.5-112.5° → UP swipe (~zero horizontal, upward on screen)
-    // 112.5-157.5° → TOP-LEFT swipe (left + upward on screen)
-    // 157.5-202.5° → LEFT swipe (left, ~zero vertical)
-    // 202.5-247.5° → BOTTOM-LEFT swipe (left + downward on screen)
-    // 247.5-292.5° → DOWN swipe (~zero horizontal, downward on screen)
-    // 292.5-337.5° → BOTTOM-RIGHT swipe (right + downward on screen)
+    // 330-30° → RIGHT swipe (60° range, ±30° tolerance)
+    // 30-60° → TOP-RIGHT swipe (30° range)
+    // 60-120° → UP swipe (60° range, ±30° tolerance)
+    // 120-150° → TOP-LEFT swipe (30° range)
+    // 150-210° → LEFT swipe (60° range, ±30° tolerance)
+    // 210-240° → BOTTOM-LEFT swipe (30° range)
+    // 240-300° → DOWN swipe (60° range, ±30° tolerance)
+    // 300-330° → BOTTOM-RIGHT swipe (30° range)
 
-    if (normalizedAngle >= 337.5 || normalizedAngle < 22.5) {
+    if (normalizedAngle >= 330 || normalizedAngle < 30) {
       swipeDirection = model.SwipeDirection.right;
-    } else if (normalizedAngle >= 22.5 && normalizedAngle < 67.5) {
+    } else if (normalizedAngle >= 30 && normalizedAngle < 60) {
       swipeDirection = model.SwipeDirection.topRight;
-    } else if (normalizedAngle >= 67.5 && normalizedAngle < 112.5) {
+    } else if (normalizedAngle >= 60 && normalizedAngle < 120) {
       swipeDirection = model.SwipeDirection.up;
-    } else if (normalizedAngle >= 112.5 && normalizedAngle < 157.5) {
+    } else if (normalizedAngle >= 120 && normalizedAngle < 150) {
       swipeDirection = model.SwipeDirection.topLeft;
-    } else if (normalizedAngle >= 157.5 && normalizedAngle < 202.5) {
+    } else if (normalizedAngle >= 150 && normalizedAngle < 210) {
       swipeDirection = model.SwipeDirection.left;
-    } else if (normalizedAngle >= 202.5 && normalizedAngle < 247.5) {
+    } else if (normalizedAngle >= 210 && normalizedAngle < 240) {
       swipeDirection = model.SwipeDirection.bottomLeft;
-    } else if (normalizedAngle >= 247.5 && normalizedAngle < 292.5) {
+    } else if (normalizedAngle >= 240 && normalizedAngle < 300) {
       swipeDirection = model.SwipeDirection.down;
     } else {
       swipeDirection = model.SwipeDirection.bottomRight;
