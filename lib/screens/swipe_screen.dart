@@ -26,6 +26,8 @@ class _SwipeScreenState extends State<SwipeScreen> {
   bool _showMotivationalHeader = true;
   bool _canScrollLeft = false;
   bool _canScrollRight = false;
+  double _lastHorizontalOffset = 0.0;
+  double _lastVerticalOffset = 0.0;
 
   @override
   void initState() {
@@ -45,26 +47,28 @@ class _SwipeScreenState extends State<SwipeScreen> {
 
   void _updateScrollButtons() {
     if (!mounted) return;
+    if (!_categoryScrollController.hasClients) return;
+
     setState(() {
-      _canScrollLeft = _categoryScrollController.hasClients &&
-                       _categoryScrollController.offset > 0;
-      _canScrollRight = _categoryScrollController.hasClients &&
-                        _categoryScrollController.offset <
+      _canScrollLeft = _categoryScrollController.offset > 0;
+      _canScrollRight = _categoryScrollController.offset <
                         _categoryScrollController.position.maxScrollExtent;
     });
   }
 
   void _scrollLeft() {
+    // Scroll by 5 chips: (60px width + 8px margin) * 5 = 340px
     _categoryScrollController.animateTo(
-      _categoryScrollController.offset - 200,
+      _categoryScrollController.offset - 340,
       duration: const Duration(milliseconds: 300),
       curve: Curves.easeInOut,
     );
   }
 
   void _scrollRight() {
+    // Scroll by 5 chips: (60px width + 8px margin) * 5 = 340px
     _categoryScrollController.animateTo(
-      _categoryScrollController.offset + 200,
+      _categoryScrollController.offset + 340,
       duration: const Duration(milliseconds: 300),
       curve: Curves.easeInOut,
     );
@@ -131,6 +135,9 @@ class _SwipeScreenState extends State<SwipeScreen> {
             categoryTotals[category.id] =
                 transactionProvider.getTotalSpendingByCategory(category.id);
           }
+
+          // Count active categories (with transactions)
+          final activeCategoryCount = categoryTotals.values.where((total) => total > 0).length;
 
           // Show loading if categories are loading
           if (categoryProvider.isLoading) {
@@ -368,27 +375,32 @@ class _SwipeScreenState extends State<SwipeScreen> {
                         ],
                       ),
                       const SizedBox(height: 10),
-                      Row(
-                        children: [
-                          if (_canScrollLeft)
+                      Builder(
+                        builder: (context) {
+                          // Update scroll buttons after this frame is built
+                          WidgetsBinding.instance.addPostFrameCallback((_) {
+                            _updateScrollButtons();
+                          });
+                          return Row(
+                            children: [
+                          // Show left arrow if there are more than 5 categories total
+                          if (categories.length > 5)
                             InkWell(
-                              onTap: _scrollLeft,
+                              onTap: _canScrollLeft ? _scrollLeft : null,
                               child: Container(
                                 padding: const EdgeInsets.all(4),
                                 decoration: BoxDecoration(
-                                  color: theme.colorScheme.primary.withOpacity(0.1),
+                                  color: theme.colorScheme.primary.withOpacity(_canScrollLeft ? 0.1 : 0.05),
                                   borderRadius: BorderRadius.circular(6),
                                 ),
                                 child: Icon(
                                   Icons.chevron_left,
                                   size: 20,
-                                  color: theme.colorScheme.primary,
+                                  color: theme.colorScheme.primary.withOpacity(_canScrollLeft ? 1.0 : 0.3),
                                 ),
                               ),
-                            )
-                          else
-                            const SizedBox(width: 28),
-                          const SizedBox(width: 8),
+                            ),
+                          if (categories.length > 5) const SizedBox(width: 8),
                           Expanded(
                             child: SizedBox(
                               height: 50,
@@ -401,12 +413,11 @@ class _SwipeScreenState extends State<SwipeScreen> {
                                   final total = categoryTotals[categoryId] ?? 0;
                                   final category = categories.firstWhere((c) => c.id == categoryId);
 
-                                  if (total == 0) return const SizedBox.shrink();
-
+                                  // Show all categories, even with $0
                                   return Container(
                                     width: 60,
                                     margin: const EdgeInsets.only(right: 8),
-                                    padding: const EdgeInsets.all(6),
+                                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
                                     decoration: BoxDecoration(
                                       gradient: LinearGradient(
                                         begin: Alignment.topLeft,
@@ -423,35 +434,34 @@ class _SwipeScreenState extends State<SwipeScreen> {
                                       ),
                                     ),
                                     child: Column(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      mainAxisSize: MainAxisSize.min,
+                                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                      mainAxisSize: MainAxisSize.max,
                                       children: [
                                         Icon(
                                           category.icon,
                                           color: category.color,
-                                          size: 16,
+                                          size: 14,
                                         ),
-                                        const SizedBox(height: 2),
-                                        Flexible(
-                                          child: Text(
-                                            '\$${total.toStringAsFixed(0)}',
-                                            style: theme.textTheme.titleSmall?.copyWith(
-                                              fontWeight: FontWeight.bold,
-                                              color: category.color,
-                                              fontSize: 10,
-                                            ),
-                                            overflow: TextOverflow.ellipsis,
+                                        Text(
+                                          '\$${total.toStringAsFixed(0)}',
+                                          style: theme.textTheme.titleSmall?.copyWith(
+                                            fontWeight: FontWeight.bold,
+                                            color: category.color,
+                                            fontSize: 10,
+                                            height: 1.0,
                                           ),
+                                          overflow: TextOverflow.ellipsis,
+                                          maxLines: 1,
                                         ),
-                                        Flexible(
-                                          child: Text(
-                                            category.name,
-                                            style: theme.textTheme.labelSmall?.copyWith(
-                                              fontSize: 8,
-                                            ),
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
+                                        Text(
+                                          category.name,
+                                          style: theme.textTheme.labelSmall?.copyWith(
+                                            fontSize: 7,
+                                            height: 1.0,
                                           ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          textAlign: TextAlign.center,
                                         ),
                                       ],
                                     ),
@@ -460,26 +470,27 @@ class _SwipeScreenState extends State<SwipeScreen> {
                               ),
                             ),
                           ),
-                          const SizedBox(width: 8),
-                          if (_canScrollRight)
+                          if (categories.length > 5) const SizedBox(width: 8),
+                          // Show right arrow if there are more than 5 categories total
+                          if (categories.length > 5)
                             InkWell(
-                              onTap: _scrollRight,
+                              onTap: _canScrollRight ? _scrollRight : null,
                               child: Container(
                                 padding: const EdgeInsets.all(4),
                                 decoration: BoxDecoration(
-                                  color: theme.colorScheme.primary.withOpacity(0.1),
+                                  color: theme.colorScheme.primary.withOpacity(_canScrollRight ? 0.1 : 0.05),
                                   borderRadius: BorderRadius.circular(6),
                                 ),
                                 child: Icon(
                                   Icons.chevron_right,
                                   size: 20,
-                                  color: theme.colorScheme.primary,
+                                  color: theme.colorScheme.primary.withOpacity(_canScrollRight ? 1.0 : 0.3),
                                 ),
                               ),
-                            )
-                          else
-                            const SizedBox(width: 28),
-                        ],
+                            ),
+                            ],
+                          );
+                        },
                       ),
                     ],
                   ),
@@ -630,10 +641,31 @@ class _SwipeScreenState extends State<SwipeScreen> {
                         // Calculate card size - use most of the available space
                         final availableHeight = constraints.maxHeight;
                         final availableWidth = constraints.maxWidth;
+                        final screenWidth = MediaQuery.of(context).size.width;
 
-                        // Use 80% of available height and width, with reasonable min/max bounds
-                        final cardHeight = (availableHeight * 0.8).clamp(300.0, 600.0);
-                        final cardWidth = (availableWidth * 0.85).clamp(350.0, 500.0);
+                        // Responsive sizing based on screen width
+                        // Mobile: <= 600px, Tablet: 600-900px, Desktop: > 900px
+                        final bool isMobile = screenWidth <= 600;
+                        final bool isTablet = screenWidth > 600 && screenWidth <= 900;
+                        final bool isDesktop = screenWidth > 900;
+
+                        // Calculate card dimensions based on device type
+                        double cardHeight;
+                        double cardWidth;
+
+                        if (isMobile) {
+                          // Mobile: current size (smaller cards)
+                          cardHeight = (availableHeight * 0.8).clamp(300.0, 600.0);
+                          cardWidth = (availableWidth * 0.85).clamp(350.0, 500.0);
+                        } else if (isTablet) {
+                          // Tablet: medium size
+                          cardHeight = (availableHeight * 0.85).clamp(400.0, 700.0);
+                          cardWidth = (availableWidth * 0.7).clamp(450.0, 650.0);
+                        } else {
+                          // Desktop: larger cards for better visibility
+                          cardHeight = (availableHeight * 0.9).clamp(500.0, 800.0);
+                          cardWidth = (availableWidth * 0.6).clamp(500.0, 700.0);
+                        }
 
                         // Calculate actual card dimensions (smaller than container)
                         final actualCardWidth = cardWidth * 0.75; // 75% of container width
@@ -676,6 +708,13 @@ class _SwipeScreenState extends State<SwipeScreen> {
                             if (index >= uncategorizedTransactions.length) {
                               return const SizedBox.shrink();
                             }
+
+                            // Track offset for diagonal detection
+                            if (index == _currentCardIndex) {
+                              _lastHorizontalOffset = horizontalOffsetPercentage.toDouble();
+                              _lastVerticalOffset = verticalOffsetPercentage.toDouble();
+                            }
+
                             final transaction = uncategorizedTransactions[index];
                             // Only show delete button on the top card (current card index)
                             final isTopCard = index == _currentCardIndex;
@@ -900,27 +939,62 @@ class _SwipeScreenState extends State<SwipeScreen> {
 
     final transaction = transactions[previousIndex];
 
-    // Map swipe direction to category
+    // Map swipe direction to category, including diagonal detection
     model.SwipeDirection? swipeDirection;
-    switch (direction) {
-      case CardSwiperDirection.top:
-        swipeDirection = model.SwipeDirection.up;
-        break;
-      case CardSwiperDirection.bottom:
-        swipeDirection = model.SwipeDirection.down;
-        break;
-      case CardSwiperDirection.left:
-        swipeDirection = model.SwipeDirection.left;
-        break;
-      case CardSwiperDirection.right:
-        swipeDirection = model.SwipeDirection.right;
-        break;
-      default:
-        return false;
+
+    // Threshold for considering a swipe diagonal (30% offset in both directions)
+    const diagonalThreshold = 0.3;
+    final absHorizontal = _lastHorizontalOffset.abs();
+    final absVertical = _lastVerticalOffset.abs();
+    final isDiagonal = absHorizontal > diagonalThreshold && absVertical > diagonalThreshold;
+
+    if (isDiagonal) {
+      // Detect diagonal swipes based on offset combination
+      if (_lastVerticalOffset < 0 && _lastHorizontalOffset > 0) {
+        swipeDirection = model.SwipeDirection.topRight; // Swipe up-right
+      } else if (_lastVerticalOffset < 0 && _lastHorizontalOffset < 0) {
+        swipeDirection = model.SwipeDirection.topLeft; // Swipe up-left
+      } else if (_lastVerticalOffset > 0 && _lastHorizontalOffset > 0) {
+        swipeDirection = model.SwipeDirection.bottomRight; // Swipe down-right
+      } else if (_lastVerticalOffset > 0 && _lastHorizontalOffset < 0) {
+        swipeDirection = model.SwipeDirection.bottomLeft; // Swipe down-left
+      }
+    } else {
+      // Cardinal directions based on CardSwiper detection
+      switch (direction) {
+        case CardSwiperDirection.top:
+          swipeDirection = model.SwipeDirection.up;
+          break;
+        case CardSwiperDirection.bottom:
+          swipeDirection = model.SwipeDirection.down;
+          break;
+        case CardSwiperDirection.left:
+          swipeDirection = model.SwipeDirection.left;
+          break;
+        case CardSwiperDirection.right:
+          swipeDirection = model.SwipeDirection.right;
+          break;
+        default:
+          return false;
+      }
+    }
+
+    // Ensure we have a valid swipe direction
+    if (swipeDirection == null) {
+      print('⚠️  Swipe direction could not be determined');
+      return false;
     }
 
     // Get category for this swipe direction
     final categoryId = categoryProvider.getCategoryForSwipe(swipeDirection);
+
+    // Debug logging
+    print('🔍 Swipe Debug:');
+    print('   Direction: $direction -> $swipeDirection');
+    print('   Offsets: H=${_lastHorizontalOffset.toStringAsFixed(2)}, V=${_lastVerticalOffset.toStringAsFixed(2)}');
+    print('   Diagonal: $isDiagonal');
+    print('   Category ID: $categoryId');
+    print('   Transaction: ${transaction.name}');
 
     if (categoryId != null) {
       // Categorize the transaction
@@ -929,6 +1003,7 @@ class _SwipeScreenState extends State<SwipeScreen> {
       // Show snackbar with category name
       final category = categoryProvider.getCategoryById(categoryId);
       if (category != null) {
+        print('   ✅ Assigned to: ${category.name}');
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(

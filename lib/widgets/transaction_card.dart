@@ -149,6 +149,23 @@ class TransactionCard extends StatelessWidget {
     final merchantIcon = _getMerchantIcon(merchantName);
     final merchantColor = _getMerchantIconColor(merchantName);
 
+    // Responsive sizing based on screen width
+    final screenWidth = MediaQuery.of(context).size.width;
+    final bool isMobile = screenWidth <= 600;
+    final bool isTablet = screenWidth > 600 && screenWidth <= 900;
+
+    // Scale factors for different screen sizes
+    final double iconSize = isMobile ? 26 : (isTablet ? 36 : 48);
+    final double merchantNameSize = isMobile ? 13 : (isTablet ? 18 : 24);
+    final double amountSize = isMobile ? 20 : (isTablet ? 28 : 36);
+    final double dateIconSize = isMobile ? 8 : (isTablet ? 10 : 12);
+    final double dateFontSize = isMobile ? 8 : (isTablet ? 10 : 12);
+    final double swipeIconSize = isMobile ? 9 : (isTablet ? 11 : 13);
+    final double swipeFontSize = isMobile ? 8 : (isTablet ? 10 : 12);
+    final double cardPadding = isMobile ? 14 : (isTablet ? 20 : 28);
+    final double iconPadding = isMobile ? 10 : (isTablet ? 14 : 18);
+    final double spacing = isMobile ? 6 : (isTablet ? 10 : 14);
+
     return Stack(
         children: [
           // Main card with enhanced design
@@ -199,14 +216,17 @@ class TransactionCard extends StatelessWidget {
                       ),
                     ],
             ),
-            padding: const EdgeInsets.all(14),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              mainAxisSize: MainAxisSize.min,
-              children: [
+            padding: EdgeInsets.all(cardPadding),
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: IntrinsicHeight(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
                 // Merchant icon with gradient background
                 Container(
-                  padding: const EdgeInsets.all(10),
+                  padding: EdgeInsets.all(iconPadding),
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       begin: Alignment.topLeft,
@@ -227,29 +247,32 @@ class TransactionCard extends StatelessWidget {
                   ),
                   child: Icon(
                     merchantIcon,
-                    size: 26,
+                    size: iconSize,
                     color: Colors.white,
                   ),
                 ),
-                const SizedBox(height: 6),
+                SizedBox(height: spacing),
 
                 // Transaction name/merchant
                 Text(
                   merchantName,
                   style: theme.textTheme.headlineMedium?.copyWith(
-                    fontSize: 13,
+                    fontSize: merchantNameSize,
                     fontWeight: FontWeight.w600,
                     letterSpacing: -0.3,
                   ),
                   textAlign: TextAlign.center,
-                  maxLines: 1,
+                  maxLines: isMobile ? 1 : 2,
                   overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(height: 5),
+                SizedBox(height: spacing * 0.8),
 
                 // Amount - Larger and more prominent
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: isMobile ? 10 : 16,
+                    vertical: isMobile ? 3 : 6,
+                  ),
                   decoration: BoxDecoration(
                     color: theme.colorScheme.primary.withOpacity(0.08),
                     borderRadius: BorderRadius.circular(8),
@@ -258,17 +281,20 @@ class TransactionCard extends StatelessWidget {
                     transaction.formattedAmount,
                     style: theme.textTheme.displaySmall?.copyWith(
                           color: theme.colorScheme.primary,
-                          fontSize: 20,
+                          fontSize: amountSize,
                           fontWeight: FontWeight.bold,
                           fontFeatures: [const FontFeature.tabularFigures()],
                         ),
                   ),
                 ),
-                const SizedBox(height: 4),
+                SizedBox(height: spacing * 0.7),
 
                 // Date and time badge
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: isMobile ? 5 : 8,
+                    vertical: isMobile ? 2 : 4,
+                  ),
                   decoration: BoxDecoration(
                     color: isDark
                         ? const Color(0xFF2C2C2E)
@@ -280,7 +306,7 @@ class TransactionCard extends StatelessWidget {
                     children: [
                       Icon(
                         Icons.calendar_today_rounded,
-                        size: 8,
+                        size: dateIconSize,
                         color: theme.textTheme.labelSmall?.color,
                       ),
                       const SizedBox(width: 3),
@@ -288,17 +314,20 @@ class TransactionCard extends StatelessWidget {
                         transaction.formattedDate,
                         style: theme.textTheme.labelSmall?.copyWith(
                           fontWeight: FontWeight.w500,
-                          fontSize: 8,
+                          fontSize: dateFontSize,
                         ),
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(height: 3),
+                SizedBox(height: spacing * 0.5),
 
                 // Swipe instruction with icon
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: isMobile ? 5 : 8,
+                    vertical: isMobile ? 2 : 4,
+                  ),
                   decoration: BoxDecoration(
                     color: merchantColor.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(4),
@@ -312,7 +341,7 @@ class TransactionCard extends StatelessWidget {
                     children: [
                       Icon(
                         Icons.swipe_rounded,
-                        size: 9,
+                        size: swipeIconSize,
                         color: merchantColor,
                       ),
                       const SizedBox(width: 2),
@@ -320,7 +349,7 @@ class TransactionCard extends StatelessWidget {
                         'Swipe to categorize',
                         style: theme.textTheme.labelSmall?.copyWith(
                           fontStyle: FontStyle.italic,
-                          fontSize: 8,
+                          fontSize: swipeFontSize,
                           fontWeight: FontWeight.w500,
                           color: merchantColor,
                         ),
@@ -330,6 +359,8 @@ class TransactionCard extends StatelessWidget {
                 ),
               ],
             ),
+          ),
+        ),
           ),
 
           // Right swipe icon
