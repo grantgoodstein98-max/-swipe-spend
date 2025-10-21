@@ -170,21 +170,11 @@ class _ConnectedBanksScreenState extends State<ConnectedBanksScreen> {
               physics: const AlwaysScrollableScrollPhysics(),
               children: [
                 // Header with bank count
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      '${banks.length} Bank${banks.length != 1 ? 's' : ''} Connected',
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    TextButton.icon(
-                      onPressed: () => plaidProvider.connectBankAccount(context),
-                      icon: const Icon(Icons.add, size: 18),
-                      label: const Text('Add Bank'),
-                    ),
-                  ],
+                Text(
+                  '${banks.length} Bank${banks.length != 1 ? 's' : ''} Connected',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
 
                 const SizedBox(height: 16),
