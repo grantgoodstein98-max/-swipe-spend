@@ -962,8 +962,9 @@ class _SwipeScreenState extends State<SwipeScreen> {
     // Use peak offsets (which preserve sign and magnitude) from the swipe
     // INVERT vertical axis: screen coords have +Y down, but we want +Y up for angles
     // BOOST vertical sensitivity: users swipe quickly and release early, so vertical
-    // movement is smaller than horizontal. Multiply by 2.5x to make diagonals easier.
-    const verticalSensitivity = 2.5;
+    // movement is smaller than horizontal. Multiply by 4.0x to make diagonals easier
+    // and reduce swipe distance needed.
+    const verticalSensitivity = 4.0;
     final adjustedVertical = -_peakVerticalOffset * verticalSensitivity;
     final angleRad = atan2(adjustedVertical, _peakHorizontalOffset);
     final angleDeg = angleRad * 180 / pi;
