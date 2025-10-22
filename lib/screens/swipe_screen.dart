@@ -7,6 +7,7 @@ import '../models/category.dart' as model;
 import '../providers/transaction_provider.dart';
 import '../providers/category_provider.dart';
 import '../widgets/transaction_card.dart';
+import '../widgets/category_legend.dart';
 import 'settings_screen.dart';
 import 'home_screen.dart';
 import 'other_refinement_screen.dart';
@@ -736,12 +737,6 @@ class _SwipeScreenState extends State<SwipeScreen> {
                             final isTopCard = index == _currentCardIndex;
                             return TransactionCard(
                               transaction: transaction,
-                              horizontalOffsetPercentage:
-                                  horizontalOffsetPercentage.toDouble(),
-                              verticalOffsetPercentage:
-                                  verticalOffsetPercentage.toDouble(),
-                              categories: categories,
-                              swipeMappings: categoryProvider.swipeMappings,
                               // Only provide onDelete for the top card
                               onDelete: isTopCard ? () async {
                                 // Delete the transaction
@@ -766,6 +761,13 @@ class _SwipeScreenState extends State<SwipeScreen> {
                                         ),
                                       ),
                                     ),
+
+                              // Category legend - always visible, split on both sides
+                              CategoryLegend(
+                                swipeMappings: categoryProvider.swipeMappings,
+                                categories: categories,
+                              ),
+
                               // Card counter - temporarily removed for testing alignment
                               // if (uncategorizedTransactions.isNotEmpty)
                               //   Positioned(
