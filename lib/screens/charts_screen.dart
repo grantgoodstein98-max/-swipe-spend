@@ -1265,10 +1265,15 @@ class _ChartsScreenState extends State<ChartsScreen> with TickerProviderStateMix
     for (var entry in monthlyData.entries) {
       final monthData = entry.value;
 
+      // Filter monthData to only include selected categories
+      final filteredMonthData = Map<String, double>.fromEntries(
+        monthData.entries.where((e) => topCategoryIds.contains(e.key))
+      );
+
       // Only sum values for selected categories (topCategoryIds)
       final filteredTotal = topCategoryIds.fold<double>(
         0.0,
-        (sum, categoryId) => sum + (monthData[categoryId] ?? 0),
+        (sum, categoryId) => sum + (filteredMonthData[categoryId] ?? 0),
       );
 
       groups.add(
@@ -1277,7 +1282,7 @@ class _ChartsScreenState extends State<ChartsScreen> with TickerProviderStateMix
           barRods: [
             BarChartRodData(
               toY: filteredTotal,
-              rodStackItems: _createStackItems(monthData, categories, topCategoryIds, themeProvider),
+              rodStackItems: _createStackItems(filteredMonthData, categories, topCategoryIds, themeProvider),
               borderRadius: BorderRadius.circular(4),
               width: 30,
             ),
@@ -1304,7 +1309,14 @@ class _ChartsScreenState extends State<ChartsScreen> with TickerProviderStateMix
       final amount = monthData[categoryId] ?? 0;
       if (amount == 0) continue;
 
-      final category = categories.firstWhere((c) => c.id == categoryId);
+      // Find category, skip if not found
+      final category = categories.cast<model.Category?>().firstWhere(
+        (c) => c?.id == categoryId,
+        orElse: () => null,
+      );
+
+      if (category == null) continue;
+
       final color = ColorHelper.adjustColorForTheme(category.color, themeProvider.isDarkMode);
 
       items.add(
