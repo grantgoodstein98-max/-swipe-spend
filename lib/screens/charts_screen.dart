@@ -1108,7 +1108,7 @@ class _ChartsScreenState extends State<ChartsScreen> with TickerProviderStateMix
             child: BarChart(
               BarChartData(
                 alignment: BarChartAlignment.spaceAround,
-                maxY: _getMaxMonthlySpending(monthlyData),
+                maxY: _getMaxMonthlySpending(monthlyData, categories),
                 barTouchData: BarTouchData(
                   enabled: true,
                   touchTooltipData: BarTouchTooltipData(
@@ -1265,12 +1265,18 @@ class _ChartsScreenState extends State<ChartsScreen> with TickerProviderStateMix
     for (var entry in monthlyData.entries) {
       final monthData = entry.value;
 
+      // Only sum values for selected categories (topCategoryIds)
+      final filteredTotal = topCategoryIds.fold<double>(
+        0.0,
+        (sum, categoryId) => sum + (monthData[categoryId] ?? 0),
+      );
+
       groups.add(
         BarChartGroupData(
           x: monthIndex,
           barRods: [
             BarChartRodData(
-              toY: monthData.values.fold(0.0, (sum, val) => sum + val),
+              toY: filteredTotal,
               rodStackItems: _createStackItems(monthData, categories, topCategoryIds, themeProvider),
               borderRadius: BorderRadius.circular(4),
               width: 30,
@@ -1315,11 +1321,44 @@ class _ChartsScreenState extends State<ChartsScreen> with TickerProviderStateMix
     return items;
   }
 
-  double _getMaxMonthlySpending(Map<String, Map<String, double>> monthlyData) {
+  double _getMaxMonthlySpending(
+    Map<String, Map<String, double>> monthlyData,
+    List<model.Category> categories,
+  ) {
     double max = 0;
 
+    // Get category totals for filtering
+    final categoryTotals = <String, double>{};
     for (var monthData in monthlyData.values) {
-      final monthTotal = monthData.values.fold<double>(0, (sum, val) => sum + val);
+      for (var entry in monthData.entries) {
+        categoryTotals[entry.key] = (categoryTotals[entry.key] ?? 0) + entry.value;
+      }
+    }
+
+    // Initialize selected categories if empty
+    if (_selectedTrendCategories.isEmpty) {
+      _selectedTrendCategories = Set.from(categoryTotals.keys);
+    }
+
+    // Filter by selected categories
+    final filteredCategoryTotals = Map.fromEntries(
+      categoryTotals.entries.where((e) => _selectedTrendCategories.contains(e.key))
+    );
+
+    final topCategories = filteredCategoryTotals.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+
+    final topCategoryIds = topCategories
+        .take(5)
+        .map((e) => e.key)
+        .toList();
+
+    // Calculate max only for selected categories
+    for (var monthData in monthlyData.values) {
+      final monthTotal = topCategoryIds.fold<double>(
+        0,
+        (sum, categoryId) => sum + (monthData[categoryId] ?? 0),
+      );
       if (monthTotal > max) max = monthTotal;
     }
 
