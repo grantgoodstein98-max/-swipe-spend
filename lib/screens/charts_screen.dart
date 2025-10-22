@@ -1244,18 +1244,12 @@ class _ChartsScreenState extends State<ChartsScreen> with TickerProviderStateMix
       }
     }
 
-    print('📊 Building bar groups:');
-    print('   All categories: ${categoryTotals.keys.toList()}');
-    print('   Selected categories: ${_selectedTrendCategories.toList()}');
-
     // Filter by selected categories (or empty if none selected)
     final filteredCategoryTotals = _selectedTrendCategories.isEmpty
       ? <String, double>{}  // Empty if no categories selected
       : Map.fromEntries(
           categoryTotals.entries.where((e) => _selectedTrendCategories.contains(e.key))
         );
-
-    print('   Filtered categories: ${filteredCategoryTotals.keys.toList()}');
 
     final topCategories = filteredCategoryTotals.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
@@ -1310,10 +1304,6 @@ class _ChartsScreenState extends State<ChartsScreen> with TickerProviderStateMix
     final items = <BarChartRodStackItem>[];
     double currentY = 0;
 
-    print('🔍 Creating stack items:');
-    print('   topCategoryIds: $topCategoryIds');
-    print('   monthData keys: ${monthData.keys.toList()}');
-
     for (var categoryId in topCategoryIds) {
       final amount = monthData[categoryId] ?? 0;
       if (amount == 0) continue;
@@ -1324,14 +1314,9 @@ class _ChartsScreenState extends State<ChartsScreen> with TickerProviderStateMix
         orElse: () => null,
       );
 
-      if (category == null) {
-        print('   ⚠️ Category not found: $categoryId');
-        continue;
-      }
+      if (category == null) continue;
 
       final color = ColorHelper.adjustColorForTheme(category.color, themeProvider.isDarkMode);
-
-      print('   ✅ Adding stack: ${category.name} (\$${amount.toStringAsFixed(2)}) - Color: $color');
 
       items.add(
         BarChartRodStackItem(
@@ -1344,7 +1329,6 @@ class _ChartsScreenState extends State<ChartsScreen> with TickerProviderStateMix
       currentY += amount;
     }
 
-    print('   Total items: ${items.length}');
     return items;
   }
 
@@ -1454,18 +1438,11 @@ class _ChartsScreenState extends State<ChartsScreen> with TickerProviderStateMix
       }
     }
 
-    print('🎯 Dialog categories: $categoriesWithData');
-    print('🎯 Selected categories: $_selectedTrendCategories');
-
     // Initialize selected categories with all categories only on first use
     if (!_hasInitializedFilter) {
       _selectedTrendCategories = Set.from(categoriesWithData);
       _hasInitializedFilter = true;
-      print('🎯 First time: Initialized to all categories');
     }
-
-    // Note: If user has explicitly cleared all, _selectedTrendCategories will be empty
-    // but we won't auto-fill it again because _hasInitializedFilter is now true
 
     showDialog(
       context: context,
@@ -1554,8 +1531,6 @@ class _ChartsScreenState extends State<ChartsScreen> with TickerProviderStateMix
                 ),
                 ElevatedButton(
                   onPressed: () {
-                    print('✅ Apply clicked! Selected: $_selectedTrendCategories');
-                    // Allow empty selection (will show blank chart)
                     setState(() {
                       // Trigger rebuild with new filter
                     });
