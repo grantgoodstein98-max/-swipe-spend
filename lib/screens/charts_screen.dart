@@ -35,6 +35,7 @@ class _ChartsScreenState extends State<ChartsScreen> with TickerProviderStateMix
   bool _showCategoryBreakdown = false;
   bool _showMonthlyTrends = false;
   Set<dynamic> _selectedTrendCategories = {};
+  bool _hasInitializedFilter = false;
 
   @override
   void dispose() {
@@ -1247,16 +1248,12 @@ class _ChartsScreenState extends State<ChartsScreen> with TickerProviderStateMix
     print('   All categories: ${categoryTotals.keys.toList()}');
     print('   Selected categories: ${_selectedTrendCategories.toList()}');
 
-    // Initialize selected categories if empty (show all by default)
-    if (_selectedTrendCategories.isEmpty) {
-      _selectedTrendCategories = Set.from(categoryTotals.keys);
-      print('   ⚠️ Initialized to all categories');
-    }
-
-    // Filter by selected categories
-    final filteredCategoryTotals = Map.fromEntries(
-      categoryTotals.entries.where((e) => _selectedTrendCategories.contains(e.key))
-    );
+    // Filter by selected categories (or empty if none selected)
+    final filteredCategoryTotals = _selectedTrendCategories.isEmpty
+      ? <String, double>{}  // Empty if no categories selected
+      : Map.fromEntries(
+          categoryTotals.entries.where((e) => _selectedTrendCategories.contains(e.key))
+        );
 
     print('   Filtered categories: ${filteredCategoryTotals.keys.toList()}');
 
@@ -1365,15 +1362,12 @@ class _ChartsScreenState extends State<ChartsScreen> with TickerProviderStateMix
       }
     }
 
-    // Initialize selected categories if empty
-    if (_selectedTrendCategories.isEmpty) {
-      _selectedTrendCategories = Set.from(categoryTotals.keys);
-    }
-
-    // Filter by selected categories
-    final filteredCategoryTotals = Map.fromEntries(
-      categoryTotals.entries.where((e) => _selectedTrendCategories.contains(e.key))
-    );
+    // Filter by selected categories (or empty if none selected)
+    final filteredCategoryTotals = _selectedTrendCategories.isEmpty
+      ? <String, double>{}  // Empty if no categories selected
+      : Map.fromEntries(
+          categoryTotals.entries.where((e) => _selectedTrendCategories.contains(e.key))
+        );
 
     final topCategories = filteredCategoryTotals.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
@@ -1463,10 +1457,15 @@ class _ChartsScreenState extends State<ChartsScreen> with TickerProviderStateMix
     print('🎯 Dialog categories: $categoriesWithData');
     print('🎯 Selected categories: $_selectedTrendCategories');
 
-    // Initialize selected categories with all categories if empty
-    if (_selectedTrendCategories.isEmpty) {
+    // Initialize selected categories with all categories only on first use
+    if (!_hasInitializedFilter) {
       _selectedTrendCategories = Set.from(categoriesWithData);
+      _hasInitializedFilter = true;
+      print('🎯 First time: Initialized to all categories');
     }
+
+    // Note: If user has explicitly cleared all, _selectedTrendCategories will be empty
+    // but we won't auto-fill it again because _hasInitializedFilter is now true
 
     showDialog(
       context: context,
@@ -1556,6 +1555,7 @@ class _ChartsScreenState extends State<ChartsScreen> with TickerProviderStateMix
                 ElevatedButton(
                   onPressed: () {
                     print('✅ Apply clicked! Selected: $_selectedTrendCategories');
+                    // Allow empty selection (will show blank chart)
                     setState(() {
                       // Trigger rebuild with new filter
                     });
