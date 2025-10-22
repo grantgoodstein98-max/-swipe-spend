@@ -31,7 +31,7 @@ class _ChartsScreenState extends State<ChartsScreen> with TickerProviderStateMix
   final Map<String, GlobalKey> _categoryKeys = {};
   final Map<String, bool> _expandedCategories = {};
   String? _highlightedCategoryId;
-  bool _showPieChart = true;
+  bool _showPieChart = false;
   bool _showCategoryBreakdown = false;
   bool _showMonthlyTrends = false;
   Set<dynamic> _selectedTrendCategories = {};
