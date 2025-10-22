@@ -34,6 +34,7 @@ class _ChartsScreenState extends State<ChartsScreen> with TickerProviderStateMix
   bool _showPieChart = true;
   bool _showCategoryBreakdown = false;
   bool _showMonthlyTrends = false;
+  Set<String> _selectedTrendCategories = {};
 
   @override
   void dispose() {
@@ -1006,12 +1007,26 @@ class _ChartsScreenState extends State<ChartsScreen> with TickerProviderStateMix
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    'Monthly Trends',
-                    style: theme.textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
+                  Expanded(
+                    child: Text(
+                      'Monthly Trends',
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
+                  if (_showMonthlyTrends)
+                    IconButton(
+                      icon: Icon(
+                        Icons.filter_list,
+                        color: theme.colorScheme.primary,
+                      ),
+                      onPressed: () {
+                        HapticFeedback.lightImpact();
+                        _showCategoryFilterDialog(context);
+                      },
+                      tooltip: 'Filter Categories',
+                    ),
                   AnimatedRotation(
                     turns: _showMonthlyTrends ? 0.5 : 0,
                     duration: const Duration(milliseconds: 300),
@@ -1227,7 +1242,17 @@ class _ChartsScreenState extends State<ChartsScreen> with TickerProviderStateMix
       }
     }
 
-    final topCategories = categoryTotals.entries.toList()
+    // Initialize selected categories if empty (show all by default)
+    if (_selectedTrendCategories.isEmpty) {
+      _selectedTrendCategories = Set.from(categoryTotals.keys);
+    }
+
+    // Filter by selected categories
+    final filteredCategoryTotals = Map.fromEntries(
+      categoryTotals.entries.where((e) => _selectedTrendCategories.contains(e.key))
+    );
+
+    final topCategories = filteredCategoryTotals.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
 
     final topCategoryIds = topCategories
@@ -1315,7 +1340,12 @@ class _ChartsScreenState extends State<ChartsScreen> with TickerProviderStateMix
       }
     }
 
-    final topCategories = categoryTotals.entries.toList()
+    // Filter by selected categories
+    final filteredCategoryTotals = Map.fromEntries(
+      categoryTotals.entries.where((e) => _selectedTrendCategories.contains(e.key))
+    );
+
+    final topCategories = filteredCategoryTotals.entries.toList()
       ..sort((a, b) => b.value.compareTo(a.value));
 
     return Wrap(
@@ -1344,6 +1374,127 @@ class _ChartsScreenState extends State<ChartsScreen> with TickerProviderStateMix
           ],
         );
       }).toList(),
+    );
+  }
+
+  void _showCategoryFilterDialog(BuildContext context) {
+    final categoryProvider = Provider.of<CategoryProvider>(context, listen: false);
+    final transactionProvider = Provider.of<TransactionProvider>(context, listen: false);
+    final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
+
+    // Get all categories that have transactions
+    final transactions = transactionProvider.transactions;
+    final categoriesWithData = <String>{};
+    for (var transaction in transactions) {
+      if (transaction.isCategorized && transaction.category != null) {
+        categoriesWithData.add(transaction.category!);
+      }
+    }
+
+    // Initialize selected categories with all categories if empty
+    if (_selectedTrendCategories.isEmpty) {
+      _selectedTrendCategories = Set.from(categoriesWithData);
+    }
+
+    showDialog(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: const Text('Filter Categories'),
+              content: SizedBox(
+                width: double.maxFinite,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        TextButton(
+                          onPressed: () {
+                            setDialogState(() {
+                              _selectedTrendCategories = Set.from(categoriesWithData);
+                            });
+                          },
+                          child: const Text('Select All'),
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            setDialogState(() {
+                              _selectedTrendCategories.clear();
+                            });
+                          },
+                          child: const Text('Clear All'),
+                        ),
+                      ],
+                    ),
+                    const Divider(),
+                    Flexible(
+                      child: ListView(
+                        shrinkWrap: true,
+                        children: categoriesWithData.map((categoryId) {
+                          final category = categoryProvider.getCategoryById(categoryId);
+                          if (category == null) return const SizedBox.shrink();
+
+                          final color = ColorHelper.adjustColorForTheme(
+                            category.color,
+                            themeProvider.isDarkMode,
+                          );
+                          final isSelected = _selectedTrendCategories.contains(categoryId);
+
+                          return CheckboxListTile(
+                            title: Row(
+                              children: [
+                                Icon(
+                                  category.icon,
+                                  color: color,
+                                  size: 20,
+                                ),
+                                const SizedBox(width: 12),
+                                Text(category.name),
+                              ],
+                            ),
+                            value: isSelected,
+                            activeColor: color,
+                            onChanged: (bool? value) {
+                              HapticFeedback.selectionClick();
+                              setDialogState(() {
+                                if (value == true) {
+                                  _selectedTrendCategories.add(categoryId);
+                                } else {
+                                  _selectedTrendCategories.remove(categoryId);
+                                }
+                              });
+                            },
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(dialogContext).pop();
+                  },
+                  child: const Text('Cancel'),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    setState(() {
+                      // Trigger rebuild with new filter
+                    });
+                    Navigator.of(dialogContext).pop();
+                  },
+                  child: const Text('Apply'),
+                ),
+              ],
+            );
+          },
+        );
+      },
     );
   }
 }
