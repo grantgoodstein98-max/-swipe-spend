@@ -3,7 +3,7 @@ import '../models/category.dart' as model;
 
 /// A persistent legend showing swipe directions and their assigned categories
 /// Split across both sides of the screen with arrows indicating swipe directions
-class CategoryLegend extends StatelessWidget {
+class CategoryLegend extends StatefulWidget {
   final Map<model.SwipeDirection, String>? swipeMappings;
   final List<model.Category>? categories;
 
@@ -13,12 +13,20 @@ class CategoryLegend extends StatelessWidget {
     this.categories,
   });
 
+  @override
+  State<CategoryLegend> createState() => _CategoryLegendState();
+}
+
+class _CategoryLegendState extends State<CategoryLegend> {
+  bool _isLeftExpanded = true;
+  bool _isRightExpanded = true;
+
   model.Category? _getCategoryForDirection(model.SwipeDirection direction) {
-    if (categories == null || swipeMappings == null) return null;
-    final categoryId = swipeMappings![direction];
+    if (widget.categories == null || widget.swipeMappings == null) return null;
+    final categoryId = widget.swipeMappings![direction];
     if (categoryId == null) return null;
     try {
-      return categories!.firstWhere((c) => c.id == categoryId);
+      return widget.categories!.firstWhere((c) => c.id == categoryId);
     } catch (e) {
       return null;
     }
@@ -90,6 +98,83 @@ class CategoryLegend extends StatelessWidget {
     );
   }
 
+  Widget _buildCollapsibleLegend({
+    required bool isExpanded,
+    required VoidCallback onToggle,
+    required List<Widget> children,
+    required bool isLeftSide,
+    required BuildContext context,
+  }) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return GestureDetector(
+      onTap: isExpanded ? null : onToggle,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+        height: isExpanded ? null : 6,
+        width: isExpanded ? null : 40,
+        padding: isExpanded ? const EdgeInsets.all(12) : const EdgeInsets.symmetric(vertical: 3, horizontal: 20),
+        decoration: BoxDecoration(
+          color: isExpanded
+              ? theme.cardColor.withOpacity(0.95)
+              : theme.colorScheme.primary.withOpacity(0.3),
+          borderRadius: BorderRadius.circular(isExpanded ? 12 : 6),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 8,
+              spreadRadius: 1,
+            ),
+          ],
+        ),
+        child: isExpanded
+            ? Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: isLeftSide ? CrossAxisAlignment.start : CrossAxisAlignment.end,
+                    children: children,
+                  ),
+                  // Minimize button in top corner
+                  Positioned(
+                    top: 4,
+                    right: isLeftSide ? 4 : null,
+                    left: isLeftSide ? null : 4,
+                    child: GestureDetector(
+                      onTap: onToggle,
+                      child: Container(
+                        width: 16,
+                        height: 16,
+                        decoration: BoxDecoration(
+                          color: isDark
+                              ? Colors.grey.shade700.withOpacity(0.8)
+                              : Colors.grey.shade300.withOpacity(0.8),
+                          borderRadius: BorderRadius.circular(3),
+                          border: Border.all(
+                            color: isDark
+                                ? Colors.grey.shade600
+                                : Colors.grey.shade400,
+                            width: 0.5,
+                          ),
+                        ),
+                        child: Icon(
+                          Icons.minimize,
+                          size: 10,
+                          color: isDark ? Colors.grey.shade300 : Colors.grey.shade700,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              )
+            : null,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     // Get categories for each direction
@@ -104,113 +189,89 @@ class CategoryLegend extends StatelessWidget {
     final upCategory = _getCategoryForDirection(model.SwipeDirection.up);
     final downCategory = _getCategoryForDirection(model.SwipeDirection.down);
 
+    // Build left side children
+    final leftChildren = <Widget>[];
+    if (upCategory != null) {
+      leftChildren.add(_buildLegendItem(upCategory, Icons.arrow_upward, isLeftSide: true));
+    }
+    if (upCategory != null && topLeftCategory != null) {
+      leftChildren.add(const SizedBox(height: 6));
+    }
+    if (topLeftCategory != null) {
+      leftChildren.add(_buildLegendItem(topLeftCategory, Icons.north_west, isLeftSide: true));
+    }
+    if (topLeftCategory != null && leftCategory != null) {
+      leftChildren.add(const SizedBox(height: 6));
+    }
+    if (leftCategory != null) {
+      leftChildren.add(_buildLegendItem(leftCategory, Icons.arrow_back, isLeftSide: true));
+    }
+    if (leftCategory != null && bottomLeftCategory != null) {
+      leftChildren.add(const SizedBox(height: 6));
+    }
+    if (bottomLeftCategory != null) {
+      leftChildren.add(_buildLegendItem(bottomLeftCategory, Icons.south_west, isLeftSide: true));
+    }
+
+    // Build right side children
+    final rightChildren = <Widget>[];
+    if (topRightCategory != null) {
+      rightChildren.add(_buildLegendItem(topRightCategory, Icons.north_east, isLeftSide: false));
+    }
+    if (topRightCategory != null && rightCategory != null) {
+      rightChildren.add(const SizedBox(height: 6));
+    }
+    if (rightCategory != null) {
+      rightChildren.add(_buildLegendItem(rightCategory, Icons.arrow_forward, isLeftSide: false));
+    }
+    if (rightCategory != null && bottomRightCategory != null) {
+      rightChildren.add(const SizedBox(height: 6));
+    }
+    if (bottomRightCategory != null) {
+      rightChildren.add(_buildLegendItem(bottomRightCategory, Icons.south_east, isLeftSide: false));
+    }
+    if (bottomRightCategory != null && downCategory != null) {
+      rightChildren.add(const SizedBox(height: 6));
+    }
+    if (downCategory != null) {
+      rightChildren.add(_buildLegendItem(downCategory, Icons.arrow_downward, isLeftSide: false));
+    }
+
     return Stack(
       children: [
         // Left side legend
-        Positioned(
-          left: 16,
-          top: 0,
-          bottom: 0,
-          child: Center(
-            child: Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Theme.of(context).cardColor.withOpacity(0.95),
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
-                    blurRadius: 8,
-                    spreadRadius: 1,
-                  ),
-                ],
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Up (added to left side)
-                  if (upCategory != null)
-                    _buildLegendItem(upCategory, Icons.arrow_upward, isLeftSide: true),
-
-                  if (upCategory != null && topLeftCategory != null)
-                    const SizedBox(height: 6),
-
-                  // Top-left
-                  if (topLeftCategory != null)
-                    _buildLegendItem(topLeftCategory, Icons.north_west, isLeftSide: true),
-
-                  if (topLeftCategory != null && leftCategory != null)
-                    const SizedBox(height: 6),
-
-                  // Left
-                  if (leftCategory != null)
-                    _buildLegendItem(leftCategory, Icons.arrow_back, isLeftSide: true),
-
-                  if (leftCategory != null && bottomLeftCategory != null)
-                    const SizedBox(height: 6),
-
-                  // Bottom-left
-                  if (bottomLeftCategory != null)
-                    _buildLegendItem(bottomLeftCategory, Icons.south_west, isLeftSide: true),
-                ],
+        if (leftChildren.isNotEmpty)
+          Positioned(
+            left: 16,
+            top: 0,
+            bottom: 0,
+            child: Center(
+              child: _buildCollapsibleLegend(
+                isExpanded: _isLeftExpanded,
+                onToggle: () => setState(() => _isLeftExpanded = !_isLeftExpanded),
+                children: leftChildren,
+                isLeftSide: true,
+                context: context,
               ),
             ),
           ),
-        ),
 
         // Right side legend
-        Positioned(
-          right: 16,
-          top: 0,
-          bottom: 0,
-          child: Center(
-            child: Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Theme.of(context).cardColor.withOpacity(0.95),
-                borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
-                    blurRadius: 8,
-                    spreadRadius: 1,
-                  ),
-                ],
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  // Top-right
-                  if (topRightCategory != null)
-                    _buildLegendItem(topRightCategory, Icons.north_east, isLeftSide: false),
-
-                  if (topRightCategory != null && rightCategory != null)
-                    const SizedBox(height: 6),
-
-                  // Right
-                  if (rightCategory != null)
-                    _buildLegendItem(rightCategory, Icons.arrow_forward, isLeftSide: false),
-
-                  if (rightCategory != null && bottomRightCategory != null)
-                    const SizedBox(height: 6),
-
-                  // Bottom-right
-                  if (bottomRightCategory != null)
-                    _buildLegendItem(bottomRightCategory, Icons.south_east, isLeftSide: false),
-
-                  if (bottomRightCategory != null && downCategory != null)
-                    const SizedBox(height: 6),
-
-                  // Down (added to right side)
-                  if (downCategory != null)
-                    _buildLegendItem(downCategory, Icons.arrow_downward, isLeftSide: false),
-                ],
+        if (rightChildren.isNotEmpty)
+          Positioned(
+            right: 16,
+            top: 0,
+            bottom: 0,
+            child: Center(
+              child: _buildCollapsibleLegend(
+                isExpanded: _isRightExpanded,
+                onToggle: () => setState(() => _isRightExpanded = !_isRightExpanded),
+                children: rightChildren,
+                isLeftSide: false,
+                context: context,
               ),
             ),
           ),
-        ),
       ],
     );
   }
