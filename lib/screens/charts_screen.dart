@@ -31,6 +31,7 @@ class _ChartsScreenState extends State<ChartsScreen> with TickerProviderStateMix
   final Map<String, GlobalKey> _categoryKeys = {};
   final Map<String, bool> _expandedCategories = {};
   String? _highlightedCategoryId;
+  bool _showPieChart = true;
   bool _showCategoryBreakdown = false;
   bool _showMonthlyTrends = false;
 
@@ -158,8 +159,8 @@ class _ChartsScreenState extends State<ChartsScreen> with TickerProviderStateMix
 
                         const SizedBox(height: 32),
 
-                        // Pie chart with tooltip
-                        _buildPieChartWithTooltip(
+                        // Pie chart with tooltip (collapsible)
+                        _buildPieChartSection(
                           categoryTotals,
                           sortedCategories,
                           categoryProvider,
@@ -285,6 +286,103 @@ class _ChartsScreenState extends State<ChartsScreen> with TickerProviderStateMix
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildPieChartSection(
+    Map<String, double> categoryTotals,
+    List<MapEntry<String, double>> sortedCategories,
+    CategoryProvider categoryProvider,
+    ThemeProvider themeProvider,
+    double totalSpending,
+    DateTime startDate,
+    DateTime endDate,
+    List<Transaction> allTransactions,
+  ) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1C1C1E) : Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: isDark
+            ? Border.all(
+                color: const Color(0xFF38383A).withOpacity(0.5),
+                width: 0.5,
+              )
+            : null,
+        boxShadow: isDark
+            ? null
+            : [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 3,
+                  offset: const Offset(0, 1),
+                ),
+              ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          InkWell(
+            onTap: () {
+              HapticFeedback.selectionClick();
+              setState(() {
+                _showPieChart = !_showPieChart;
+              });
+            },
+            borderRadius: BorderRadius.circular(12),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Category Distribution',
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  AnimatedRotation(
+                    turns: _showPieChart ? 0.5 : 0,
+                    duration: const Duration(milliseconds: 300),
+                    child: Icon(
+                      Icons.expand_more,
+                      color: theme.textTheme.bodyMedium?.color,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          AnimatedSize(
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+            child: _showPieChart
+                ? Column(
+                    children: [
+                      const Divider(height: 1),
+                      Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: _buildPieChartWithTooltip(
+                          categoryTotals,
+                          sortedCategories,
+                          categoryProvider,
+                          themeProvider,
+                          totalSpending,
+                          startDate,
+                          endDate,
+                          allTransactions,
+                        ),
+                      ),
+                    ],
+                  )
+                : const SizedBox.shrink(),
+          ),
+        ],
+      ),
     );
   }
 
