@@ -316,7 +316,17 @@ class PlaidServiceMultiBank {
           );
         }).toList();
       } else {
-        throw Exception('Backend returned ${response.statusCode}');
+        // Parse error details from backend
+        try {
+          final errorData = jsonDecode(response.body);
+          debugPrint('❌ Backend error (${response.statusCode}):');
+          debugPrint('   Error: ${errorData['error']}');
+          debugPrint('   Message: ${errorData['message']}');
+          debugPrint('   Plaid Error: ${errorData['plaidError']}');
+          throw Exception('Backend ${response.statusCode}: ${errorData['message'] ?? errorData['error']}');
+        } catch (parseError) {
+          throw Exception('Backend returned ${response.statusCode}: ${response.body}');
+        }
       }
     } catch (e) {
       debugPrint('❌ Error fetching transactions from backend: $e');

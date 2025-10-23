@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/plaid_provider_multi_bank.dart';
@@ -29,11 +30,20 @@ class _ConnectedBanksScreenState extends State<ConnectedBanksScreen> {
     final transactionProvider = context.read<TransactionProvider>();
 
     try {
+      debugPrint('🔄 Starting sync for ${bank.displayName}...');
       final transactions = await plaidProvider.syncBank(bank.institutionId);
+      debugPrint('📥 Received ${transactions.length} transactions from Plaid');
+
+      if (transactions.isNotEmpty) {
+        debugPrint('📋 Sample transaction: ${transactions.first.name} - \$${transactions.first.amount}');
+        debugPrint('📊 Current total transactions: ${transactionProvider.transactions.length}');
+      }
 
       if (transactions.isNotEmpty && mounted) {
         // Import transactions
         final imported = await transactionProvider.importTransactions(transactions);
+        debugPrint('✅ Imported $imported new transactions (${transactions.length - imported} duplicates)');
+        debugPrint('📊 New total transactions: ${transactionProvider.transactions.length}');
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -47,6 +57,7 @@ class _ConnectedBanksScreenState extends State<ConnectedBanksScreen> {
           );
         }
       } else if (mounted) {
+        debugPrint('ℹ️ No transactions to import from ${bank.displayName}');
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('No new transactions from ${bank.displayName}'),
@@ -55,6 +66,7 @@ class _ConnectedBanksScreenState extends State<ConnectedBanksScreen> {
         );
       }
     } catch (e) {
+      debugPrint('❌ Sync error for ${bank.displayName}: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
