@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../models/connected_bank.dart';
+import '../models/transaction.dart';
+import '../providers/transaction_provider.dart';
 
 /// Card widget displaying a connected bank with sync controls
-class BankCard extends StatelessWidget {
+class BankCard extends StatefulWidget {
   final ConnectedBank bank;
   final VoidCallback onSync;
   final VoidCallback onDisconnect;
@@ -21,9 +24,24 @@ class BankCard extends StatelessWidget {
   });
 
   @override
+  State<BankCard> createState() => _BankCardState();
+}
+
+class _BankCardState extends State<BankCard> {
+  bool _isExpanded = false;
+
+  List<Transaction> _getBankTransactions(BuildContext context) {
+    final transactionProvider = context.watch<TransactionProvider>();
+    return transactionProvider.transactions
+        .where((t) => t.institutionId == widget.bank.institutionId)
+        .toList();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
+    final bankTransactions = _getBankTransactions(context);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -59,12 +77,12 @@ class BankCard extends StatelessWidget {
                   width: 48,
                   height: 48,
                   decoration: BoxDecoration(
-                    color: _getStatusColor(bank.status).withOpacity(0.1),
+                    color: _getStatusColor(widget.bank.status).withOpacity(0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Icon(
                     Icons.account_balance,
-                    color: _getStatusColor(bank.status),
+                    color: _getStatusColor(widget.bank.status),
                     size: 24,
                   ),
                 ),
@@ -76,7 +94,7 @@ class BankCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        bank.displayName,
+                        widget.bank.displayName,
                         style: theme.textTheme.bodyLarge?.copyWith(
                           fontWeight: FontWeight.w600,
                         ),
@@ -104,13 +122,13 @@ class BankCard extends StatelessWidget {
                   onSelected: (value) {
                     switch (value) {
                       case 'sync':
-                        onSync();
+                        widget.onSync();
                         break;
                       case 'view':
-                        onViewTransactions?.call();
+                        widget.onViewTransactions?.call();
                         break;
                       case 'reconnect':
-                        onReconnect?.call();
+                        widget.onReconnect?.call();
                         break;
                       case 'disconnect':
                         _showDisconnectDialog(context);
@@ -128,7 +146,7 @@ class BankCard extends StatelessWidget {
                         ],
                       ),
                     ),
-                    if (onViewTransactions != null)
+                    if (widget.onViewTransactions != null)
                       const PopupMenuItem(
                         value: 'view',
                         child: Row(
@@ -139,7 +157,7 @@ class BankCard extends StatelessWidget {
                           ],
                         ),
                       ),
-                    if (bank.status == BankConnectionStatus.needsReauth && onReconnect != null)
+                    if (widget.bank.status == BankConnectionStatus.needsReauth && widget.onReconnect != null)
                       const PopupMenuItem(
                         value: 'reconnect',
                         child: Row(
@@ -181,11 +199,20 @@ class BankCard extends StatelessWidget {
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  bank.lastSyncText,
+                  widget.bank.lastSyncText,
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: theme.textTheme.bodySmall?.color?.withOpacity(0.7),
                   ),
                 ),
+                const Spacer(),
+                if (bankTransactions.isNotEmpty)
+                  Text(
+                    '${bankTransactions.length} transaction${bankTransactions.length != 1 ? 's' : ''}',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.primary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
               ],
             ),
 
@@ -195,8 +222,8 @@ class BankCard extends StatelessWidget {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
-                onPressed: isSyncing ? null : onSync,
-                icon: isSyncing
+                onPressed: widget.isSyncing ? null : widget.onSync,
+                icon: widget.isSyncing
                     ? const SizedBox(
                         width: 16,
                         height: 16,
@@ -204,12 +231,12 @@ class BankCard extends StatelessWidget {
                       )
                     : const Icon(Icons.sync, size: 18),
                 label: Text(
-                  isSyncing ? 'Syncing...' : 'Sync ${bank.displayName}',
+                  widget.isSyncing ? 'Syncing...' : 'Sync ${widget.bank.displayName}',
                   style: const TextStyle(fontSize: 14),
                 ),
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 12),
-                  backgroundColor: _getStatusColor(bank.status),
+                  backgroundColor: _getStatusColor(widget.bank.status),
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -217,25 +244,171 @@ class BankCard extends StatelessWidget {
                 ),
               ),
             ),
+
+            // Expandable transactions section
+            if (bankTransactions.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              InkWell(
+                onTap: () {
+                  setState(() {
+                    _isExpanded = !_isExpanded;
+                  });
+                },
+                borderRadius: BorderRadius.circular(8),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: Row(
+                    children: [
+                      Icon(
+                        _isExpanded ? Icons.expand_less : Icons.expand_more,
+                        color: theme.colorScheme.primary,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        _isExpanded ? 'Hide Transactions' : 'Show Transactions',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.primary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              // Transaction list
+              if (_isExpanded) ...[
+                const SizedBox(height: 8),
+                Container(
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.surface,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: theme.dividerColor.withOpacity(0.1),
+                    ),
+                  ),
+                  child: ListView.separated(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: bankTransactions.length,
+                    separatorBuilder: (context, index) => Divider(
+                      height: 1,
+                      thickness: 1,
+                      color: theme.dividerColor.withOpacity(0.1),
+                    ),
+                    itemBuilder: (context, index) {
+                      final transaction = bankTransactions[index];
+                      return ListTile(
+                        dense: true,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 4,
+                        ),
+                        leading: CircleAvatar(
+                          radius: 16,
+                          backgroundColor: theme.colorScheme.primary.withOpacity(0.1),
+                          child: Icon(
+                            Icons.receipt,
+                            size: 16,
+                            color: theme.colorScheme.primary,
+                          ),
+                        ),
+                        title: Text(
+                          transaction.merchantName ?? transaction.name,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            fontWeight: FontWeight.w500,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        subtitle: Text(
+                          transaction.formattedDate,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            fontSize: 11,
+                            color: theme.textTheme.bodySmall?.color?.withOpacity(0.6),
+                          ),
+                        ),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              '\$${transaction.amount.toStringAsFixed(2)}',
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                fontWeight: FontWeight.w600,
+                                color: theme.colorScheme.primary,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            IconButton(
+                              icon: const Icon(Icons.close, size: 16),
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
+                              onPressed: () {
+                                _deleteTransaction(context, transaction);
+                              },
+                              color: Colors.red,
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ],
           ],
         ),
       ),
     );
   }
 
+  void _deleteTransaction(BuildContext context, Transaction transaction) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Transaction?'),
+        content: Text(
+          'Are you sure you want to delete this transaction?\n\n'
+          '${transaction.merchantName ?? transaction.name}\n'
+          '\$${transaction.amount.toStringAsFixed(2)}',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              context.read<TransactionProvider>().deleteTransaction(transaction.id);
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Transaction deleted'),
+                  duration: Duration(seconds: 2),
+                ),
+              );
+            },
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+  }
+
   String _buildAccountSubtitle() {
     final parts = <String>[];
-    if (bank.accountType != null) {
-      parts.add(bank.accountType!);
+    if (widget.bank.accountType != null) {
+      parts.add(widget.bank.accountType!);
     }
-    if (bank.accountMask != null) {
-      parts.add('••••  ${bank.accountMask}');
+    if (widget.bank.accountMask != null) {
+      parts.add('••••  ${widget.bank.accountMask}');
     }
     return parts.isEmpty ? 'Bank Account' : parts.join(' • ');
   }
 
   Widget _buildStatusBadge(ThemeData theme) {
-    final status = isSyncing ? BankConnectionStatus.syncing : bank.status;
+    final status = widget.isSyncing ? BankConnectionStatus.syncing : widget.bank.status;
     final color = _getStatusColor(status);
 
     return Container(
@@ -292,7 +465,7 @@ class BankCard extends StatelessWidget {
       builder: (context) => AlertDialog(
         title: const Text('Disconnect Bank?'),
         content: Text(
-          'Are you sure you want to disconnect ${bank.displayName}?\n\n'
+          'Are you sure you want to disconnect ${widget.bank.displayName}?\n\n'
           'Your existing transactions will remain, but future syncs will stop.',
         ),
         actions: [
@@ -303,7 +476,7 @@ class BankCard extends StatelessWidget {
           TextButton(
             onPressed: () {
               Navigator.pop(context);
-              onDisconnect();
+              widget.onDisconnect();
             },
             style: TextButton.styleFrom(foregroundColor: Colors.red),
             child: const Text('Disconnect'),
