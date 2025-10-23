@@ -11,12 +11,13 @@ app.use(cors());
 app.use(express.json());
 
 // Plaid client configuration
+const plaidEnv = process.env.PLAID_ENV || 'sandbox';
 const configuration = new Configuration({
-  basePath: PlaidEnvironments.sandbox,
+  basePath: plaidEnv === 'production' ? PlaidEnvironments.production : PlaidEnvironments.sandbox,
   baseOptions: {
     headers: {
       'PLAID-CLIENT-ID': process.env.PLAID_CLIENT_ID || '68f2cbfc7c634d00204cb232',
-      'PLAID-SECRET': process.env.PLAID_SECRET || 'd1260af14dc3d7df25c645f7739a67',
+      'PLAID-SECRET': process.env.PLAID_SECRET || 'df8aa2b45882f657705cbdd554a839',
     },
   },
 });
@@ -118,8 +119,8 @@ app.post('/api/plaid/transactions', async (req, res) => {
 
 // Start server
 app.listen(PORT, () => {
-  console.log(`=€ Plaid Backend Server running on http://localhost:${PORT}`);
-  console.log(`=Ý Environment: ${process.env.PLAID_ENV || 'sandbox'}`);
+  console.log(`=ï¿½ Plaid Backend Server running on http://localhost:${PORT}`);
+  console.log(`=ï¿½ Environment: ${process.env.PLAID_ENV || 'sandbox'}`);
   console.log(`\nAvailable endpoints:`);
   console.log(`  GET  /                              - Health check`);
   console.log(`  POST /api/plaid/create_link_token   - Create Plaid Link token`);

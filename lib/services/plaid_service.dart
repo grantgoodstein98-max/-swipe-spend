@@ -16,10 +16,10 @@ import 'plaid_web_service.dart' if (dart.library.io) 'plaid_web_service_stub.dar
 /// 4. Generate link tokens from your backend
 class PlaidService {
   // Plaid configuration
-  // Credentials from Plaid Dashboard (Sandbox mode)
+  // Credentials from Plaid Dashboard (Production mode)
   static const String _clientId = '68f2cbfc7c634d00204cb232';
-  static const String _secret = 'd1260af14dc3d7df25c645f7739a67';
-  static const String _environment = 'sandbox'; // sandbox for testing
+  static const String _secret = 'df8aa2b45882f657705cbdd554a839';
+  static const String _environment = 'production'; // production environment
 
   PlaidLink? _plaidLink;
   String? _accessToken;
@@ -129,8 +129,11 @@ class PlaidService {
     try {
       // This is a demo - in production, call your backend API endpoint
       // Example: POST https://your-backend.com/api/plaid/exchange_token
+      final plaidBaseUrl = _environment == 'production'
+          ? 'https://production.plaid.com'
+          : 'https://sandbox.plaid.com';
       final response = await http.post(
-        Uri.parse('https://sandbox.plaid.com/item/public_token/exchange'),
+        Uri.parse('$plaidBaseUrl/item/public_token/exchange'),
         headers: {
           'Content-Type': 'application/json',
         },
@@ -173,8 +176,11 @@ class PlaidService {
       final start = startDate ?? DateTime.now().subtract(const Duration(days: 30));
       final end = endDate ?? DateTime.now();
 
+      final plaidBaseUrl = _environment == 'production'
+          ? 'https://production.plaid.com'
+          : 'https://sandbox.plaid.com';
       final response = await http.post(
-        Uri.parse('https://sandbox.plaid.com/transactions/get'),
+        Uri.parse('$plaidBaseUrl/transactions/get'),
         headers: {
           'Content-Type': 'application/json',
         },
