@@ -1,0 +1,84 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  userId    String   @unique // Client-side user identifier
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  banks     ConnectedBank[]
+}
+
+model ConnectedBank {
+  id              String   @id @default(uuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Plaid credentials
+  accessToken     String   // Encrypted in production
+  itemId          String   @unique
+
+  // Bank info
+  institutionId   String
+  institutionName String
+  accountIds      String[] // Array of account IDs from this bank
+
+  // Status tracking
+  status          String   @default("connected") // connected, needs_reauth, error, syncing
+  lastSyncAt      DateTime?
+  errorMessage    String?
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  transactions    Transaction[]
+
+  @@index([userId])
+  @@index([itemId])
+}
+
+model Transaction {
+  id                  String   @id @default(uuid())
+
+  // Plaid transaction data
+  transactionId       String   @unique // Plaid's transaction ID
+  accountId           String
+
+  // Bank relationship
+  bankId              String
+  bank                ConnectedBank @relation(fields: [bankId], references: [id], onDelete: Cascade)
+
+  // Transaction details
+  amount              Float
+  date                DateTime
+  name                String
+  merchantName        String?
+  category            String[]
+  pending             Boolean  @default(false)
+
+  // Additional metadata
+  paymentChannel      String?
+  transactionType     String?
+  location            Json?    // Store location data as JSON
+
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  @@index([bankId])
+  @@index([accountId])
+  @@index([date])
+  @@index([transactionId])
+}
