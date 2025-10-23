@@ -17,8 +17,9 @@ const handler = async (req, res) => {
     }
 
     // Correct configuration for Plaid SDK v39
+    const plaidEnv = process.env.PLAID_ENV || 'sandbox';
     const configuration = new Configuration({
-      basePath: PlaidEnvironments.sandbox,
+      basePath: plaidEnv === 'production' ? PlaidEnvironments.production : PlaidEnvironments.sandbox,
       baseOptions: {
         headers: {
           'PLAID-CLIENT-ID': process.env.PLAID_CLIENT_ID,
