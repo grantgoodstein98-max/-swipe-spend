@@ -8,17 +8,11 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Plaid client configuration
+// Plaid client configuration - without custom headers
 const plaidEnv = process.env.PLAID_ENV || 'sandbox';
 
 const configuration = new Configuration({
   basePath: plaidEnv === 'production' ? PlaidEnvironments.production : PlaidEnvironments.sandbox,
-  baseOptions: {
-    headers: {
-      'PLAID-CLIENT-ID': process.env.PLAID_CLIENT_ID,
-      'PLAID-SECRET': process.env.PLAID_SECRET,
-    },
-  },
 });
 
 const plaidClient = new PlaidApi(configuration);
@@ -48,6 +42,8 @@ app.post('/api/plaid/create_link_token', async (req, res) => {
       products: ['transactions'],
       country_codes: ['US'],
       language: 'en',
+      client_id: process.env.PLAID_CLIENT_ID,
+      secret: process.env.PLAID_SECRET,
     };
 
     const response = await plaidClient.linkTokenCreate(request);
@@ -68,6 +64,8 @@ app.post('/api/plaid/exchange_token', async (req, res) => {
 
     const response = await plaidClient.itemPublicTokenExchange({
       public_token,
+      client_id: process.env.PLAID_CLIENT_ID,
+      secret: process.env.PLAID_SECRET,
     });
 
     const accessToken = response.data.access_token;
@@ -103,6 +101,8 @@ app.post('/api/plaid/transactions', async (req, res) => {
       access_token: accessToken,
       start_date: start_date || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
       end_date: end_date || new Date().toISOString().split('T')[0],
+      client_id: process.env.PLAID_CLIENT_ID,
+      secret: process.env.PLAID_SECRET,
     };
 
     const response = await plaidClient.transactionsGet(request);
