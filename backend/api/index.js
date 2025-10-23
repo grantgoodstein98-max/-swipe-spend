@@ -1,7 +1,6 @@
 const express = require('express');
 const cors = require('cors');
 const { Configuration, PlaidApi, PlaidEnvironments } = require('plaid');
-const axios = require('axios');
 
 const app = express();
 
@@ -9,22 +8,20 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Plaid client configuration
+// Plaid client configuration - using environment variables directly
 const plaidEnv = process.env.PLAID_ENV || 'sandbox';
 
-// Create axios instance with Plaid headers
-const axiosInstance = axios.create({
-  headers: {
-    'PLAID-CLIENT-ID': process.env.PLAID_CLIENT_ID,
-    'PLAID-SECRET': process.env.PLAID_SECRET,
-  },
-});
+// Plaid SDK reads these from environment if not in headers
+process.env['PLAID_CLIENT_ID'] = process.env.PLAID_CLIENT_ID;
+process.env['PLAID_SECRET'] = process.env.PLAID_SECRET;
 
 const configuration = new Configuration({
   basePath: plaidEnv === 'production' ? PlaidEnvironments.production : PlaidEnvironments.sandbox,
   baseOptions: {
-    httpsAgent: axiosInstance.defaults.httpsAgent,
-    headers: axiosInstance.defaults.headers,
+    headers: {
+      'PLAID-CLIENT-ID': process.env.PLAID_CLIENT_ID,
+      'PLAID-SECRET': process.env.PLAID_SECRET,
+    },
   },
 });
 
