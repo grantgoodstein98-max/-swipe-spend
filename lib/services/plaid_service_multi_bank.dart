@@ -179,11 +179,16 @@ class PlaidServiceMultiBank {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        // Note: Backend returns success but doesn't return access_token for security
-        // In a real implementation, backend would store it and return an item_id
-        // For now, we'll use the public_token as a placeholder
-        debugPrint('✅ Successfully exchanged public token');
-        return publicToken; // Temporary - in production, backend stores this
+        final accessToken = data['access_token'] as String?;
+
+        if (accessToken != null) {
+          debugPrint('✅ Successfully exchanged public token for access token');
+          return accessToken;
+        } else {
+          debugPrint('⚠️ No access_token in response, using item_id reference');
+          // Backend should have stored the access token, return a reference
+          return data['item_id'] as String?;
+        }
       } else {
         debugPrint('❌ Failed to exchange token: ${response.statusCode}');
         return null;

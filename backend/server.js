@@ -81,6 +81,7 @@ app.post('/api/plaid/exchange_token', async (req, res) => {
 
     res.json({
       success: true,
+      access_token: accessToken,
       item_id: itemId,
     });
   } catch (error) {
