@@ -10,6 +10,9 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
+// Import routes
+const banksRouter = require('./routes/banks');
+
 // Plaid client configuration
 const plaidEnv = process.env.PLAID_ENV || 'sandbox';
 const configuration = new Configuration({
@@ -31,6 +34,9 @@ let accessTokens = {};
 app.get('/', (req, res) => {
   res.json({ message: 'Plaid Backend Server Running', status: 'OK' });
 });
+
+// Bank sync routes
+app.use('/api', banksRouter);
 
 // Create link token
 app.post('/api/plaid/create_link_token', async (req, res) => {

@@ -35,10 +35,15 @@ model ConnectedBank {
   institutionId   String
   institutionName String
   accountIds      String[] // Array of account IDs from this bank
+  accountMask     String?  // Last 4 digits of account
+  accountType     String?  // checking, savings, credit, etc.
+  logoUrl         String?  // Bank logo URL
+  nickname        String?  // User-defined nickname for this bank
 
   // Status tracking
-  status          String   @default("connected") // connected, needs_reauth, error, syncing
+  status          String   @default("connected") // connected, needsReauth, error, syncing
   lastSyncAt      DateTime?
+  lastSyncTransactionCount Int @default(0)
   errorMessage    String?
 
   createdAt       DateTime @default(now())
@@ -48,6 +53,7 @@ model ConnectedBank {
 
   @@index([userId])
   @@index([itemId])
+  @@index([institutionId])
 }
 
 model Transaction {
