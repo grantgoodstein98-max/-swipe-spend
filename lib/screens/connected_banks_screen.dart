@@ -179,26 +179,48 @@ class _ConnectedBanksScreenState extends State<ConnectedBanksScreen> {
 
                 const SizedBox(height: 16),
 
-                // Sync All Banks button (only if 2+ banks)
-                if (banks.length >= 2) ...[
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: () => _syncAllBanks(context),
-                      icon: const Icon(Icons.sync),
-                      label: Text('Sync All Banks (${banks.length})'),
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        backgroundColor: theme.colorScheme.primary,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                // Action buttons row
+                Row(
+                  children: [
+                    // Add Another Bank button
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () => plaidProvider.connectBankAccount(context),
+                        icon: const Icon(Icons.add),
+                        label: const Text('Add Bank'),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          side: BorderSide(color: theme.colorScheme.primary),
+                          foregroundColor: theme.colorScheme.primary,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 24),
-                ],
+
+                    // Sync All Banks button (only if 2+ banks)
+                    if (banks.length >= 2) ...[
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: () => _syncAllBanks(context),
+                          icon: const Icon(Icons.sync),
+                          label: const Text('Sync All'),
+                          style: ElevatedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            backgroundColor: theme.colorScheme.primary,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+                const SizedBox(height: 24),
 
                 // Bank cards
                 ...banks.map((bank) {
