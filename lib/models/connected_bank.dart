@@ -3,6 +3,7 @@ class ConnectedBank {
   final String institutionId;
   final String institutionName;
   final String accessToken;
+  final String? itemId; // Plaid item ID
   final String? accountMask; // Last 4 digits
   final String? accountType; // Checking, Savings, Credit, etc.
   final DateTime connectedAt;
@@ -17,6 +18,7 @@ class ConnectedBank {
     required this.institutionId,
     required this.institutionName,
     required this.accessToken,
+    this.itemId,
     this.accountMask,
     this.accountType,
     required this.connectedAt,
@@ -52,6 +54,7 @@ class ConnectedBank {
   ConnectedBank copyWith({
     String? institutionId,
     String? institutionName,
+    String? itemId,
     String? accessToken,
     String? accountMask,
     String? accountType,
@@ -66,6 +69,7 @@ class ConnectedBank {
     return ConnectedBank(
       institutionId: institutionId ?? this.institutionId,
       institutionName: institutionName ?? this.institutionName,
+      itemId: itemId ?? this.itemId,
       accessToken: accessToken ?? this.accessToken,
       accountMask: accountMask ?? this.accountMask,
       accountType: accountType ?? this.accountType,
@@ -82,6 +86,7 @@ class ConnectedBank {
   Map<String, dynamic> toJson() {
     return {
       'institutionId': institutionId,
+      'itemId': itemId,
       'institutionName': institutionName,
       'accessToken': accessToken,
       'accountMask': accountMask,
@@ -99,6 +104,7 @@ class ConnectedBank {
   factory ConnectedBank.fromJson(Map<String, dynamic> json) {
     return ConnectedBank(
       institutionId: json['institutionId'],
+      itemId: json['itemId'],
       institutionName: json['institutionName'],
       accessToken: json['accessToken'],
       accountMask: json['accountMask'],

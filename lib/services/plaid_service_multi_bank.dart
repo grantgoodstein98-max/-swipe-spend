@@ -90,14 +90,14 @@ class PlaidServiceMultiBank {
 
       for (final bank in banks) {
         try {
-          await http.post(
+          final response = await http.post(
             Uri.parse('$backendUrl/api/user/$userId/banks'),
             headers: {'Content-Type': 'application/json'},
             body: jsonEncode({
               'institutionId': bank.institutionId,
               'institutionName': bank.institutionName,
               'accessToken': bank.accessToken,
-              'itemId': '${bank.institutionId}_${DateTime.now().millisecondsSinceEpoch}',
+              'itemId': bank.itemId ?? '${bank.institutionId}_fallback',
               'accountMask': bank.accountMask,
               'accountType': bank.accountType,
               'logoUrl': bank.logoUrl,
@@ -105,7 +105,12 @@ class PlaidServiceMultiBank {
               'accountIds': [],
             }),
           ).timeout(const Duration(seconds: 10));
-          debugPrint('☁️ Synced ${bank.institutionName} to backend');
+
+          if (response.statusCode == 200) {
+            debugPrint('☁️ Synced ${bank.institutionName} to backend (itemId: ${bank.itemId})');
+          } else {
+            debugPrint('⚠️ Backend returned ${response.statusCode} for ${bank.institutionName}');
+          }
         } catch (e) {
           debugPrint('⚠️ Failed to sync ${bank.institutionName} to backend: $e');
         }
@@ -126,18 +131,24 @@ class PlaidServiceMultiBank {
     String? logoUrl,
   }) async {
     try {
-      // Exchange public token for access token
-      final accessToken = await _exchangePublicToken(publicToken);
+      // Exchange public token for access token and item ID
+      final tokenData = await _exchangePublicToken(publicToken);
 
-      if (accessToken == null) {
+      if (tokenData == null) {
         throw Exception('Failed to exchange public token');
       }
+
+      final accessToken = tokenData['accessToken']!;
+      final itemId = tokenData['itemId']!;
+
+      debugPrint('✅ Received access token and item ID from backend');
 
       // Create new ConnectedBank
       final bank = ConnectedBank(
         institutionId: institutionId,
         institutionName: institutionName,
         accessToken: accessToken,
+        itemId: itemId,
         accountMask: accountMask,
         accountType: accountType,
         connectedAt: DateTime.now(),
@@ -166,14 +177,15 @@ class PlaidServiceMultiBank {
   }
 
   /// Exchange public token for access token via backend
-  Future<String?> _exchangePublicToken(String publicToken) async {
+  /// Returns a Map with 'accessToken' and 'itemId'
+  Future<Map<String, String>?> _exchangePublicToken(String publicToken) async {
     try {
       final response = await http.post(
         Uri.parse('$backendUrl/api/plaid/exchange_token'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'public_token': publicToken,
-          'userId': 'user-${DateTime.now().millisecondsSinceEpoch}',
+          'userId': _authService.userId ?? 'user-${DateTime.now().millisecondsSinceEpoch}',
         }),
       ).timeout(const Duration(seconds: 30));
 
@@ -181,15 +193,19 @@ class PlaidServiceMultiBank {
         final data = jsonDecode(response.body);
         debugPrint('🔍 Exchange response: $data');
         final accessToken = data['access_token'] as String?;
+        final itemId = data['item_id'] as String?;
 
-        if (accessToken != null) {
-          debugPrint('✅ Successfully exchanged public token for access token');
+        if (accessToken != null && itemId != null) {
+          debugPrint('✅ Successfully exchanged public token');
           debugPrint('🔑 Access token: ${accessToken.substring(0, 20)}...');
-          return accessToken;
+          debugPrint('🆔 Item ID: $itemId');
+          return {
+            'accessToken': accessToken,
+            'itemId': itemId,
+          };
         } else {
-          debugPrint('⚠️ No access_token in response, using item_id reference');
-          // Backend should have stored the access token, return a reference
-          return data['item_id'] as String?;
+          debugPrint('⚠️ Missing access_token or item_id in response');
+          return null;
         }
       } else {
         debugPrint('❌ Failed to exchange token: ${response.statusCode}');
