@@ -13,6 +13,11 @@ class PlaidProviderMultiBank extends ChangeNotifier {
   List<ConnectedBank> _connectedBanks = [];
   Map<String, bool> _syncingBanks = {}; // Track which banks are currently syncing
 
+  PlaidProviderMultiBank() {
+    // Load connected banks on initialization
+    loadConnectedBanks();
+  }
+
   bool get isLoading => _isLoading;
   String? get error => _error;
   List<ConnectedBank> get connectedBanks => _connectedBanks;

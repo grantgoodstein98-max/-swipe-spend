@@ -23,9 +23,33 @@ class PlaidServiceMultiBank {
       ? 'https://swipe-spend-backend.onrender.com'
       : 'http://localhost:3000';
 
-  /// Get all connected banks from storage
+  /// Get all connected banks from backend (with local cache fallback)
   Future<List<ConnectedBank>> getConnectedBanks() async {
     try {
+      final userId = _authService.userId ?? 'guest';
+
+      // Try to fetch from backend first
+      try {
+        final response = await http.get(
+          Uri.parse('$backendUrl/api/user/$userId/banks'),
+          headers: {'Content-Type': 'application/json'},
+        ).timeout(const Duration(seconds: 10));
+
+        if (response.statusCode == 200) {
+          final data = jsonDecode(response.body);
+          final List<dynamic> banksList = data['banks'];
+          final banks = banksList.map((json) => ConnectedBank.fromJson(json)).toList();
+
+          // Cache to local storage
+          await _saveToLocalStorage(banks);
+          debugPrint('✅ Loaded ${banks.length} banks from backend');
+          return banks;
+        }
+      } catch (e) {
+        debugPrint('⚠️ Backend fetch failed, using local cache: $e');
+      }
+
+      // Fallback to local storage if backend fails
       final prefs = await SharedPreferences.getInstance();
       final banksJson = prefs.getString(_connectedBanksKey);
 
@@ -34,20 +58,58 @@ class PlaidServiceMultiBank {
       }
 
       final List<dynamic> banksList = jsonDecode(banksJson);
-      return banksList.map((json) => ConnectedBank.fromJson(json)).toList();
+      final banks = banksList.map((json) => ConnectedBank.fromJson(json)).toList();
+      debugPrint('📦 Loaded ${banks.length} banks from local cache');
+      return banks;
     } catch (e) {
       debugPrint('❌ Error loading connected banks: $e');
       return [];
     }
   }
 
-  /// Save connected banks to storage
-  Future<void> _saveConnectedBanks(List<ConnectedBank> banks) async {
+  /// Save connected banks to local storage only (for caching)
+  Future<void> _saveToLocalStorage(List<ConnectedBank> banks) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final banksJson = jsonEncode(banks.map((b) => b.toJson()).toList());
       await prefs.setString(_connectedBanksKey, banksJson);
-      debugPrint('✅ Saved ${banks.length} connected banks');
+      debugPrint('💾 Cached ${banks.length} banks locally');
+    } catch (e) {
+      debugPrint('❌ Error caching banks locally: $e');
+    }
+  }
+
+  /// Save bank to backend and local storage
+  Future<void> _saveConnectedBanks(List<ConnectedBank> banks) async {
+    try {
+      // Save to local storage first (immediate)
+      await _saveToLocalStorage(banks);
+
+      // Then sync to backend (may fail if offline)
+      final userId = _authService.userId ?? 'guest';
+
+      for (final bank in banks) {
+        try {
+          await http.post(
+            Uri.parse('$backendUrl/api/user/$userId/banks'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({
+              'institutionId': bank.institutionId,
+              'institutionName': bank.institutionName,
+              'accessToken': bank.accessToken,
+              'itemId': '${bank.institutionId}_${DateTime.now().millisecondsSinceEpoch}',
+              'accountMask': bank.accountMask,
+              'accountType': bank.accountType,
+              'logoUrl': bank.logoUrl,
+              'nickname': bank.nickname,
+              'accountIds': [],
+            }),
+          ).timeout(const Duration(seconds: 10));
+          debugPrint('☁️ Synced ${bank.institutionName} to backend');
+        } catch (e) {
+          debugPrint('⚠️ Failed to sync ${bank.institutionName} to backend: $e');
+        }
+      }
     } catch (e) {
       debugPrint('❌ Error saving connected banks: $e');
       rethrow;
@@ -325,9 +387,22 @@ class PlaidServiceMultiBank {
   /// Disconnect a specific bank
   Future<void> disconnectBank(String institutionId) async {
     try {
+      // Delete from backend
+      final userId = _authService.userId ?? 'guest';
+      try {
+        await http.delete(
+          Uri.parse('$backendUrl/api/user/$userId/banks/$institutionId'),
+          headers: {'Content-Type': 'application/json'},
+        ).timeout(const Duration(seconds: 10));
+        debugPrint('☁️ Deleted $institutionId from backend');
+      } catch (e) {
+        debugPrint('⚠️ Failed to delete from backend: $e');
+      }
+
+      // Delete from local storage
       final banks = await getConnectedBanks();
       banks.removeWhere((b) => b.institutionId == institutionId);
-      await _saveConnectedBanks(banks);
+      await _saveToLocalStorage(banks);
       debugPrint('🔌 Disconnected bank: $institutionId');
     } catch (e) {
       debugPrint('❌ Error disconnecting bank: $e');

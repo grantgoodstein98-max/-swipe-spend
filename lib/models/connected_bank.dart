@@ -86,8 +86,8 @@ class ConnectedBank {
       'accessToken': accessToken,
       'accountMask': accountMask,
       'accountType': accountType,
-      'connectedAt': connectedAt.toIso8601String(),
-      'lastSyncedAt': lastSyncedAt?.toIso8601String(),
+      'createdAt': connectedAt.toIso8601String(), // Backend uses createdAt
+      'lastSyncAt': lastSyncedAt?.toIso8601String(), // Backend uses lastSyncAt
       'status': status.name,
       'errorMessage': errorMessage,
       'lastSyncTransactionCount': lastSyncTransactionCount,
@@ -103,10 +103,12 @@ class ConnectedBank {
       accessToken: json['accessToken'],
       accountMask: json['accountMask'],
       accountType: json['accountType'],
-      connectedAt: DateTime.parse(json['connectedAt']),
+      // Handle both 'connectedAt' (local) and 'createdAt' (backend) formats
+      connectedAt: DateTime.parse(json['connectedAt'] ?? json['createdAt']),
+      // Handle both 'lastSyncedAt' (local) and 'lastSyncAt' (backend) formats
       lastSyncedAt: json['lastSyncedAt'] != null
           ? DateTime.parse(json['lastSyncedAt'])
-          : null,
+          : (json['lastSyncAt'] != null ? DateTime.parse(json['lastSyncAt']) : null),
       status: BankConnectionStatus.values.firstWhere(
         (e) => e.name == json['status'],
         orElse: () => BankConnectionStatus.connected,

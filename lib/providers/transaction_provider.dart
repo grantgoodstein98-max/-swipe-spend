@@ -39,15 +39,13 @@ class TransactionProvider extends ChangeNotifier {
       final prefs = await SharedPreferences.getInstance();
       final transactionsString = prefs.getString(_transactionsKey);
 
-      // Don't load from storage if using dummy data (check after async operations)
-      if (_isUsingDummyData) {
-        debugPrint('⏭️ Skipping storage load (using dummy data)');
-        return;
-      }
-
       if (transactionsString != null && transactionsString.isNotEmpty) {
         final List<dynamic> decoded = jsonDecode(transactionsString);
         _transactions = decoded.map((json) => Transaction.fromJson(json)).toList();
+        // If we loaded real data, disable dummy data mode
+        if (_transactions.isNotEmpty) {
+          _isUsingDummyData = false;
+        }
         debugPrint('✅ Loaded ${_transactions.length} transactions from storage');
       } else {
         debugPrint('ℹ️ No saved transactions found');
@@ -76,12 +74,18 @@ class TransactionProvider extends ChangeNotifier {
   }
 
   /// Add a new transaction
-  void addTransaction(Transaction transaction) {
+  Future<void> addTransaction(Transaction transaction) async {
     try {
       _transactions.add(transaction);
+      // Disable dummy data mode when adding real transactions
+      if (_isUsingDummyData) {
+        _isUsingDummyData = false;
+        debugPrint('🔄 Switched from dummy data to real data');
+      }
       // Sort by date (newest first)
       _transactions.sort((a, b) => b.date.compareTo(a.date));
       notifyListeners();
+      await _saveTransactions();
     } catch (e) {
       debugPrint('Error adding transaction: $e');
       rethrow;
