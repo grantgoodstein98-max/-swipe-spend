@@ -179,10 +179,12 @@ class PlaidServiceMultiBank {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
+        debugPrint('🔍 Exchange response: $data');
         final accessToken = data['access_token'] as String?;
 
         if (accessToken != null) {
           debugPrint('✅ Successfully exchanged public token for access token');
+          debugPrint('🔑 Access token: ${accessToken.substring(0, 20)}...');
           return accessToken;
         } else {
           debugPrint('⚠️ No access_token in response, using item_id reference');
