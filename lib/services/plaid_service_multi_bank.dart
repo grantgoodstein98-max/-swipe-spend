@@ -207,7 +207,7 @@ class PlaidServiceMultiBank {
 
       // Fetch transactions from backend
       final transactions = await _fetchTransactionsFromBackend(
-        bank.accessToken,
+        bank.institutionId,
         startDate: startDate,
         endDate: endDate,
       );
@@ -270,21 +270,23 @@ class PlaidServiceMultiBank {
 
   /// Fetch transactions from backend
   Future<List<Transaction>> _fetchTransactionsFromBackend(
-    String accessToken, {
+    String institutionId, {
     DateTime? startDate,
     DateTime? endDate,
   }) async {
     try {
       final start = startDate ?? DateTime.now().subtract(const Duration(days: 30));
       final end = endDate ?? DateTime.now();
+      final userId = _authService.userId ?? 'guest';
 
-      // In production, backend would use the stored access_token
-      // For now, this is a placeholder - actual implementation would call backend
+      debugPrint('📥 Fetching transactions for user: $userId, bank: $institutionId');
+
       final response = await http.post(
         Uri.parse('$backendUrl/api/plaid/transactions'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
-          'userId': 'user-temp', // Backend would look up by access token
+          'userId': userId,
+          'institutionId': institutionId,
           'start_date': _formatDate(start),
           'end_date': _formatDate(end),
         }),

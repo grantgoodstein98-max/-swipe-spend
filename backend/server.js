@@ -95,15 +95,32 @@ app.post('/api/plaid/exchange_token', async (req, res) => {
 // Get transactions
 app.post('/api/plaid/transactions', async (req, res) => {
   try {
-    const { userId, start_date, end_date } = req.body;
-    const accessToken = accessTokens[userId];
+    const { userId, institutionId, start_date, end_date } = req.body;
 
-    if (!accessToken) {
-      return res.status(400).json({ error: 'No access token found. Please link your bank account first.' });
+    // Fetch access token from database
+    const { PrismaClient } = require('@prisma/client');
+    const prisma = new PrismaClient();
+
+    const user = await prisma.user.findUnique({
+      where: { userId },
+      include: { banks: true }
+    });
+
+    if (!user || user.banks.length === 0) {
+      return res.status(400).json({ error: 'No banks connected. Please link your bank account first.' });
+    }
+
+    // If institutionId specified, use that bank's token; otherwise use first bank
+    const bank = institutionId
+      ? user.banks.find(b => b.institutionId === institutionId)
+      : user.banks[0];
+
+    if (!bank) {
+      return res.status(400).json({ error: 'Bank not found.' });
     }
 
     const request = {
-      access_token: accessToken,
+      access_token: bank.accessToken,
       start_date: start_date || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
       end_date: end_date || new Date().toISOString().split('T')[0],
     };
@@ -114,6 +131,8 @@ app.post('/api/plaid/transactions', async (req, res) => {
       transactions: response.data.transactions,
       total_transactions: response.data.total_transactions,
     });
+
+    await prisma.$disconnect();
   } catch (error) {
     console.error('Error fetching transactions:', error);
     res.status(500).json({
