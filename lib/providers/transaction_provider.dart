@@ -3,15 +3,23 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/transaction.dart';
 import '../services/plaid_service.dart';
+import '../services/auth_service.dart';
 
 /// Provider for managing transaction state
 class TransactionProvider extends ChangeNotifier {
   final PlaidService _plaidService = PlaidService();
+  final AuthService _authService = AuthService();
   List<Transaction> _transactions = [];
   bool _isUsingDummyData = false;
 
   TransactionProvider() {
     _loadTransactionsFromStorage();
+  }
+
+  /// Get storage key for transactions (user-specific)
+  String get _transactionsKey {
+    final userId = _authService.userId;
+    return userId != null ? 'transactions_$userId' : 'transactions_guest';
   }
 
   /// Get all transactions
@@ -29,7 +37,7 @@ class TransactionProvider extends ChangeNotifier {
   Future<void> _loadTransactionsFromStorage() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      final transactionsString = prefs.getString('transactions');
+      final transactionsString = prefs.getString(_transactionsKey);
 
       // Don't load from storage if using dummy data (check after async operations)
       if (_isUsingDummyData) {
@@ -59,8 +67,8 @@ class TransactionProvider extends ChangeNotifier {
     try {
       final prefs = await SharedPreferences.getInstance();
       final transactionsJson = _transactions.map((t) => t.toJson()).toList();
-      await prefs.setString('transactions', jsonEncode(transactionsJson));
-      debugPrint('✅ Saved ${_transactions.length} transactions to storage');
+      await prefs.setString(_transactionsKey, jsonEncode(transactionsJson));
+      debugPrint('✅ Saved ${_transactions.length} transactions to storage (key: $_transactionsKey)');
     } catch (e) {
       debugPrint('❌ Error saving transactions: $e');
       rethrow;

@@ -6,10 +6,17 @@ import 'dart:async';
 import '../models/transaction.dart';
 import '../models/connected_bank.dart';
 import 'plaid_web_service.dart' if (dart.library.io) 'plaid_web_service_stub.dart';
+import 'auth_service.dart';
 
 /// Enhanced Plaid service with multi-bank support
 class PlaidServiceMultiBank {
-  static const String _connectedBanksKey = 'connected_banks';
+  final AuthService _authService = AuthService();
+
+  /// Get storage key for connected banks (user-specific)
+  String get _connectedBanksKey {
+    final userId = _authService.userId;
+    return userId != null ? 'connected_banks_$userId' : 'connected_banks_guest';
+  }
 
   /// Get backend URL based on platform
   static String get backendUrl => kIsWeb
